@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Контроль авто</title>
+<style>
+:root {
+    --bg: #edf2f7;
+    --panel: rgba(255, 255, 255, 0.92);
+    --panel-strong: #ffffff;
+    --line: #d8e1ec;
+    --text: #122033;
+    --muted: #5b6b7f;
+    --primary: #1f4b99;
+    --primary-strong: #173b7a;
+    --shadow: 0 20px 48px rgba(18, 32, 51, 0.12);
+}
+
+body {
+    margin: 0;
+    color: var(--text);
+    font-family: Aptos, "Segoe UI", sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(31, 75, 153, 0.10), transparent 30%),
+        linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+}
+
+.page {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.logout-form {
+    margin: 0;
+}
+
+.logout-button {
+    border: 0;
+    border-radius: 12px;
+    background: #6b7c93;
+    color: white;
+    padding: 11px 16px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.hero,
+.card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(8px);
+}
+
+.hero {
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 18px;
+}
+
+.eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+h1 {
+    margin: 0;
+    color: var(--primary-strong);
+    font-size: 36px;
+    line-height: 1.05;
+}
+
+.subtitle {
+    margin-top: 12px;
+    max-width: 760px;
+    color: var(--muted);
+    line-height: 1.55;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+}
+
+.card {
+    border-radius: 22px;
+    padding: 22px;
+}
+
+.name {
+    display: inline-block;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--primary-strong);
+    text-decoration: none;
+}
+
+.name:hover {
+    text-decoration: underline;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 999px;
+    color: white;
+    font-weight: 800;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+
+.status::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+}
+
+dl {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin: 0;
+}
+
+dt,
+dd {
+    margin: 0;
+}
+
+.document-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid #e4ebf4;
+}
+
+.document-row:first-child {
+    border-top: 0;
+    padding-top: 18px;
+}
+
+.document-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.document-date {
+    margin-top: 6px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--primary-strong);
+    overflow-wrap: anywhere;
+}
+
+dt {
+    font-weight: 700;
+    color: #334155;
+}
+</style>
+<link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+<div class="page">
+    <div class="topbar">
+        <a class="back-link" href="/">← Назад к календарю</a>
+        <form class="logout-form" action="/logout" method="post">
+            <button class="logout-button" type="submit">Выйти</button>
+        </form>
+    </div>
+
+    <section class="hero">
+        <div class="eyebrow">Контроль авто</div>
+        <h1>Страховки, техосмотр и ТО автопарка</h1>
+        <div class="subtitle">
+            Контроль сроков документов и технического обслуживания по каждому автомобилю.
+        </div>
+    </section>
+
+    <div class="grid">
+        {% for car in cars %}
+        <section class="card">
+            <a class="name" href="/car/{{ car.id }}">{{ car.name }}</a>
+            <dl>
+                <div class="document-row">
+                    <div>
+                        <dt class="document-label">Страховка до</dt>
+                        <dd class="document-date">{{ car.insurance_valid_until or "-" }}</dd>
+                    </div>
+                    <div class="status" style="background: {{ car.insurance_status_color }};">
+                        {{ car.insurance_status_label }}
+                    </div>
+                </div>
+                <div class="document-row">
+                    <div>
+                        <dt class="document-label">Техосмотр до</dt>
+                        <dd class="document-date">{{ car.inspection_valid_until or "-" }}</dd>
+                    </div>
+                    <div class="status" style="background: {{ car.inspection_status_color }};">
+                        {{ car.inspection_status_label }}
+                    </div>
+                </div>
+                <div class="document-row">
+                    <div>
+                        <dt class="document-label">Техническое обслуживание</dt>
+                        <dd class="document-date">
+                            {% if car.next_service_mileage %}
+                            Следующее ТО на {{ car.next_service_mileage }} км
+                            {% else %}
+                            -
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div class="status" style="background: {{ car.service_status_color }};">
+                        {{ car.service_status_label }}
+                    </div>
+                </div>
+            </dl>
+        </section>
+        {% endfor %}
+    </div>
+</div>
+</body>
+</html>

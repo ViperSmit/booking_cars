@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ car.name }}: аналитика</title>
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/analytics.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="/static/analytics.js" defer></script>
+</head>
+<body class="analytics-body">
+<div
+    class="analytics-page"
+    id="car-analytics-root"
+    data-car-id="{{ car.id }}"
+    data-default-period="{{ filters.period }}"
+    data-default-start="{{ filters.display_start }}"
+    data-default-end="{{ filters.display_end }}"
+>
+    <div class="analytics-topbar">
+        <a class="analytics-link" href="/analytics">Назад к аналитике автопарка</a>
+        <div class="analytics-topbar-actions">
+            <a class="analytics-link" href="/car/{{ car.id }}">Карточка автомобиля</a>
+            <form action="/logout" method="post">
+                <button class="analytics-button secondary" type="submit">Выйти</button>
+            </form>
+        </div>
+    </div>
+
+    <section class="analytics-hero">
+        <div class="analytics-eyebrow">Детальная аналитика</div>
+        <div class="analytics-title-row">
+            <div>
+                <h1>{{ car.name }}</h1>
+                <div class="analytics-subtitle">
+                    Детальный срез по бронированиям, выручке, пробегу, прибыльности, обслуживанию, шинам, страховкам и штрафам.
+                </div>
+            </div>
+            <div class="analytics-status available" id="car-status-badge">Аналитика автомобиля</div>
+        </div>
+
+        <div class="analytics-filters">
+            <div class="analytics-filter">
+                <label for="car-filter-period">Период</label>
+                <select class="analytics-select" id="car-filter-period">
+                    {% for option in reference.period_options %}
+                    <option value="{{ option.value }}" {% if option.value == filters.period %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="analytics-filter {% if filters.period != 'custom' %}analytics-hidden{% endif %}">
+                <label for="car-filter-start-date">Дата начала</label>
+                <input class="analytics-input" id="car-filter-start-date" type="date" value="{{ filters.display_start }}">
+            </div>
+            <div class="analytics-filter {% if filters.period != 'custom' %}analytics-hidden{% endif %}">
+                <label for="car-filter-end-date">Дата окончания</label>
+                <input class="analytics-input" id="car-filter-end-date" type="date" value="{{ filters.display_end }}">
+            </div>
+            <div class="analytics-filter">
+                <label for="car-filter-car-id">Быстрый переход к авто</label>
+                <select class="analytics-select" id="car-filter-car-id">
+                    {% for option in reference.cars %}
+                    <option value="{{ option.id }}" {% if option.id == car.id %}selected{% endif %}>{{ option.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="analytics-filter-actions">
+                <button class="analytics-button" id="car-filter-apply" type="button">Применить</button>
+                <button class="analytics-button ghost" id="car-filter-reset" type="button">Сбросить</button>
+            </div>
+        </div>
+    </section>
+
+    <div class="analytics-loading" id="car-loading">Загрузка аналитики автомобиля...</div>
+    <div class="analytics-error analytics-hidden" id="car-error">Не удалось загрузить аналитику автомобиля.</div>
+    <section class="analytics-card">
+        <h2 class="analytics-card-title">Галерея автомобиля</h2>
+        <div class="analytics-gallery" id="car-gallery"></div>
+    </section>
+
+    <div class="analytics-kpi-grid" style="margin-top: 18px;">
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">Выручка</div><div class="analytics-kpi-value" data-summary-key="car_total_revenue">$0.00</div></section>
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">Расходы</div><div class="analytics-kpi-value" data-summary-key="car_total_expenses">$0.00</div></section>
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">Чистая прибыль</div><div class="analytics-kpi-value" data-summary-key="car_net_profit">$0.00</div></section>
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">ROI</div><div class="analytics-kpi-value" data-summary-key="car_roi_pct">0%</div></section>
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">Средняя длительность брони</div><div class="analytics-kpi-value" data-summary-key="car_average_booking_duration">0</div></section>
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">Средняя выручка в день</div><div class="analytics-kpi-value" data-summary-key="car_average_daily_revenue">$0.00</div></section>
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">Дней простоя</div><div class="analytics-kpi-value" data-summary-key="car_days_idle">0</div></section>
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">Лучший месяц</div><div class="analytics-kpi-value" data-summary-key="car_best_performing_month">Нет данных</div></section>
+        <section class="analytics-kpi-card"><div class="analytics-kpi-label">Текущий пробег</div><div class="analytics-kpi-value" data-summary-key="car_current_mileage">0</div></section>
+    </div>
+
+    <section class="analytics-card" style="margin-bottom: 18px;">
+        <div class="analytics-table-toolbar" style="padding: 0 0 16px; border-bottom: 0;">
+            <div>
+                <h2 class="analytics-card-title" style="margin-bottom: 6px;">Основная информация</h2>
+                <div class="analytics-note">Экспорт текущего фильтрованного среза автомобиля в CSV или Excel.</div>
+            </div>
+            <div class="analytics-filter-actions">
+                <button class="analytics-button ghost" id="car-export-csv" type="button">Экспорт CSV</button>
+                <button class="analytics-button ghost" id="car-export-excel" type="button">Экспорт Excel</button>
+            </div>
+        </div>
+        <div class="analytics-meta-grid">
+            <div class="analytics-meta-item"><div class="analytics-meta-label">Госномер</div><div class="analytics-meta-value">{{ car.car_number or "-" }}</div></div>
+            <div class="analytics-meta-item"><div class="analytics-meta-label">Год</div><div class="analytics-meta-value">{{ car.year or "-" }}</div></div>
+            <div class="analytics-meta-item"><div class="analytics-meta-label">Страховка до</div><div class="analytics-meta-value">{{ car.insurance_valid_until or "Не задано" }}</div></div>
+            <div class="analytics-meta-item"><div class="analytics-meta-label">Техосмотр до</div><div class="analytics-meta-value">{{ car.inspection_valid_until or "Не задано" }}</div></div>
+            <div class="analytics-meta-item"><div class="analytics-meta-label">Текущий пробег</div><div class="analytics-meta-value">{{ car.current_mileage or 0 }}</div></div>
+            <div class="analytics-meta-item"><div class="analytics-meta-label">Последнее ТО, км</div><div class="analytics-meta-value">{{ car.last_service_mileage or 0 }}</div></div>
+            <div class="analytics-meta-item"><div class="analytics-meta-label">Межсервисный интервал</div><div class="analytics-meta-value">{{ car.service_interval_km or 0 }}</div></div>
+        </div>
+    </section>
+
+    <div class="analytics-chart-grid">
+        <section class="analytics-card"><h2 class="analytics-card-title">История бронирований</h2><div class="analytics-chart-shell" id="car-bookings-chart-shell"><canvas id="car-bookings-chart"></canvas></div></section>
+        <section class="analytics-card"><h2 class="analytics-card-title">История выручки</h2><div class="analytics-chart-shell" id="car-revenue-chart-shell"><canvas id="car-revenue-chart"></canvas></div></section>
+        <section class="analytics-card"><h2 class="analytics-card-title">Рост пробега</h2><div class="analytics-chart-shell" id="car-mileage-chart-shell"><canvas id="car-mileage-chart"></canvas></div></section>
+        <section class="analytics-card"><h2 class="analytics-card-title">История расходов</h2><div class="analytics-chart-shell" id="car-expense-chart-shell"><canvas id="car-expense-chart"></canvas></div></section>
+    </div>
+
+    <div class="analytics-table-grid">
+        <section class="analytics-card">
+            <h2 class="analytics-card-title">История расходов</h2>
+            <div class="analytics-table-wrap">
+                <table class="analytics-simple-table">
+                    <thead><tr><th>Дата</th><th>Категория</th><th>Сумма</th><th>Заметки</th></tr></thead>
+                    <tbody id="car-expenses-body"></tbody>
+                </table>
+            </div>
+        </section>
+        <section class="analytics-card">
+            <h2 class="analytics-card-title">История обслуживания</h2>
+            <div class="analytics-table-wrap">
+                <table class="analytics-simple-table">
+                    <thead><tr><th>Дата</th><th>Категория</th><th>Сумма</th><th>Пробег</th><th>Следующее ТО, км</th><th>Заметки</th></tr></thead>
+                    <tbody id="car-service-body"></tbody>
+                </table>
+            </div>
+        </section>
+        <section class="analytics-card">
+            <h2 class="analytics-card-title">История замены шин</h2>
+            <div class="analytics-table-wrap">
+                <table class="analytics-simple-table">
+                    <thead><tr><th>Дата</th><th>Категория</th><th>Сумма</th><th>Пробег</th><th>Следующая замена, км</th><th>Заметки</th></tr></thead>
+                    <tbody id="car-tires-body"></tbody>
+                </table>
+            </div>
+        </section>
+        <section class="analytics-card">
+            <h2 class="analytics-card-title">Платежи по страховке</h2>
+            <div class="analytics-table-wrap">
+                <table class="analytics-simple-table">
+                    <thead><tr><th>Дата</th><th>Полис</th><th>Сумма</th><th>Срок действия</th><th>Заметки</th></tr></thead>
+                    <tbody id="car-insurance-body"></tbody>
+                </table>
+            </div>
+        </section>
+        <section class="analytics-card" style="grid-column: 1 / -1;">
+            <h2 class="analytics-card-title">История штрафов</h2>
+            <div class="analytics-table-wrap">
+                <table class="analytics-simple-table">
+                    <thead><tr><th>Дата</th><th>Номер</th><th>Сумма</th><th>Статус</th><th>Заметки</th></tr></thead>
+                    <tbody id="car-fines-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+</body>
+</html>

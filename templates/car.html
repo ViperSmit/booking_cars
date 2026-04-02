@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>{{ car.name }}</title>
+<style>
+:root {
+    --bg: #edf2f7;
+    --panel: rgba(255, 255, 255, 0.94);
+    --line: #d8e1ec;
+    --text: #122033;
+    --muted: #5b6b7f;
+    --primary: #1f4b99;
+    --primary-strong: #173b7a;
+    --green: #1f9d61;
+    --red: #cf3f3f;
+    --shadow: 0 20px 48px rgba(18, 32, 51, 0.12);
+}
+
+body {
+    margin: 0;
+    color: var(--text);
+    font-family: Aptos, "Segoe UI", sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(31, 75, 153, 0.10), transparent 30%),
+        linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+}
+
+.page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.hero,
+.card,
+#modal {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(8px);
+}
+
+.hero {
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 18px;
+}
+
+.eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+.hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+}
+
+h1 {
+    margin: 0;
+    color: var(--primary-strong);
+    font-size: 38px;
+    line-height: 1.05;
+}
+
+.hero-copy {
+    margin-top: 12px;
+    max-width: 720px;
+    color: var(--muted);
+    line-height: 1.55;
+}
+
+.insurance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    color: white;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.insurance-badge::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.badge-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    gap: 18px;
+}
+
+.card {
+    border-radius: 22px;
+    padding: 22px;
+}
+
+.section-title {
+    margin: 0 0 14px;
+    color: var(--primary-strong);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.key-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.key-field {
+    padding: 18px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #173b7a 0%, #1f4b99 55%, #3672d8 100%);
+    color: white;
+}
+
+.key-field-title {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.82;
+}
+
+.key-field-value {
+    margin: 10px 0 14px;
+    font-size: 30px;
+    font-weight: 800;
+    word-break: break-word;
+}
+
+.copy-button,
+button,
+a.button-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 16px;
+    border: 0;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.copy-button {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+button,
+a.button-link {
+    background: var(--primary);
+}
+
+.button-secondary {
+    background: #6b7c93;
+}
+
+.button-danger {
+    background: var(--red);
+}
+
+.meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.meta-item {
+    border-radius: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.meta-label {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.meta-value {
+    margin-top: 8px;
+    font-size: 20px;
+    font-weight: 800;
+    word-break: break-word;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.pricing-card {
+    border-radius: 16px;
+    padding: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid #e4ebf4;
+}
+
+.pricing-label {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.pricing-value {
+    margin-top: 8px;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary-strong);
+}
+
+dl {
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 12px 14px;
+    margin: 0;
+}
+
+dt {
+    font-weight: 700;
+    color: #334155;
+}
+
+dd {
+    margin: 0;
+    word-break: break-word;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+#status-message {
+    min-height: 20px;
+    color: var(--green);
+    font-weight: 700;
+}
+
+#modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(18, 32, 51, 0.48);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+#modal {
+    width: min(760px, 100%);
+    border-radius: 22px;
+    padding: 24px;
+}
+
+#modal h2 {
+    margin: 0 0 16px;
+    color: var(--primary-strong);
+}
+
+form {
+    display: grid;
+    gap: 16px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+label {
+    display: grid;
+    gap: 6px;
+    font-weight: 700;
+    color: #334155;
+}
+
+input,
+textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border: 1px solid #ccd6e3;
+    border-radius: 12px;
+    font: inherit;
+    background: white;
+}
+
+textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+@media (max-width: 980px) {
+    .layout,
+    .key-fields,
+    .pricing-grid,
+    .form-grid,
+    .meta-grid,
+    dl {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-top {
+        flex-direction: column;
+    }
+}
+</style>
+<link rel="stylesheet" href="/static/theme.css">
+</head>
+<body>
+<div class="page">
+    <div class="topbar">
+        <a class="back-link" href="/">← Назад к календарю</a>
+        <form action="/logout" method="post" style="margin:0;">
+            <button class="button-secondary" type="submit">Выйти</button>
+        </form>
+    </div>
+
+    <section class="hero">
+        <div class="eyebrow">Карточка автомобиля</div>
+        <div class="hero-top">
+            <div>
+                <h1 id="car-title">{{ car.name }}</h1>
+                <div class="hero-copy">
+                    Карточка автомобиля с ключевыми документами, тарифами, пробегом и параметрами обслуживания для аналитики. Номер авто и техпаспорт вынесены в быстрый доступ для копирования в один клик.
+                </div>
+            </div>
+            <div class="badge-group">
+                <span
+                    class="insurance-badge"
+                    id="view-insurance-status"
+                    style="background: {{ car.insurance_status_color }};"
+                >{{ car.insurance_status_label }}</span>
+                <span
+                    class="insurance-badge"
+                    id="view-inspection-status"
+                    style="background: {{ car.inspection_status_color }};"
+                >{{ car.inspection_status_label }}</span>
+                <span
+                    class="insurance-badge"
+                    id="view-service-status"
+                    style="background: {{ car.service_status_color }};"
+                >{{ car.service_status_label }}</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="layout">
+        <section class="card">
+            <h2 class="section-title">Ключевые данные</h2>
+            <div class="key-fields">
+                <div class="key-field">
+                    <div class="key-field-title">Номер авто</div>
+                    <div class="key-field-value" id="key-car-number">{{ car.car_number or "-" }}</div>
+                    <button class="copy-button" data-copy-target="key-car-number" type="button">Копировать</button>
+                </div>
+                <div class="key-field">
+                    <div class="key-field-title">Техпаспорт</div>
+                    <div class="key-field-value" id="key-passport">{{ car.passport or "-" }}</div>
+                    <button class="copy-button" data-copy-target="key-passport" type="button">Копировать</button>
+                </div>
+            </div>
+
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-label">1-3 дня</div>
+                    <div class="pricing-value" id="view-price-1-3">{{ "$" ~ car.price_1_3 if car.price_1_3 is not none else "-" }}</div>
+                </div>
+                <div class="pricing-card">
+                    <div class="pricing-label">4-7 дней</div>
+                    <div class="pricing-value" id="view-price-4-7">{{ "$" ~ car.price_4_7 if car.price_4_7 is not none else "-" }}</div>
+                </div>
+                <div class="pricing-card">
+                    <div class="pricing-label">8-14 дней</div>
+                    <div class="pricing-value" id="view-price-8-14">{{ "$" ~ car.price_8_14 if car.price_8_14 is not none else "-" }}</div>
+                </div>
+            </div>
+
+            {% if is_admin %}
+            <div class="actions">
+                <button id="open-edit" type="button">Редактировать</button>
+                <div id="status-message"></div>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2 class="section-title">Паспортные и документальные данные</h2>
+            <dl>
+                <dt>Название</dt>
+                <dd id="view-name">{{ car.name }}</dd>
+                <dt>Год</dt>
+                <dd id="view-year">{{ car.year or "-" }}</dd>
+                <dt>Номер авто</dt>
+                <dd id="view-car-number">{{ car.car_number or "-" }}</dd>
+                <dt>VIN</dt>
+                <dd id="view-vin">{{ car.vin or "-" }}</dd>
+                <dt>Техпаспорт</dt>
+                <dd id="view-passport">{{ car.passport or "-" }}</dd>
+                <dt>Номер полиса</dt>
+                <dd id="view-insurance-policy">{{ car.insurance_policy_number or "-" }}</dd>
+                <dt>Страховка до</dt>
+                <dd id="view-insurance-valid-until">{{ car.insurance_valid_until or "-" }}</dd>
+                <dt>Техосмотр до</dt>
+                <dd id="view-inspection-valid-until">{{ car.inspection_valid_until or "-" }}</dd>
+                <dt>Техническое обслуживание</dt>
+                <dd id="view-service-due-date">{{ car.service_due_date or "-" }}</dd>
+                <dt>Описание</dt>
+                <dd id="view-description">{{ car.description or "-" }}</dd>
+                <dt>Текущий пробег</dt>
+                <dd id="view-current-mileage">{{ car.current_mileage or 0 }}</dd>
+                <dt>Пробег последнего ТО</dt>
+                <dd id="view-last-service-mileage">{{ car.last_service_mileage or 0 }}</dd>
+                <dt>Межсервисный интервал, км</dt>
+                <dd id="view-service-interval-km">{{ car.service_interval_km or 0 }}</dd>
+            </dl>
+        </section>
+    </div>
+
+    <section class="card" style="margin-top: 18px;">
+        <h2 class="section-title">Быстрый обзор</h2>
+        <div class="meta-grid">
+            <div class="meta-item">
+                <div class="meta-label">Модель</div>
+                <div class="meta-value" id="meta-name">{{ car.name }}</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">VIN</div>
+                <div class="meta-value" id="meta-vin">{{ car.vin or "-" }}</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">Год</div>
+                <div class="meta-value" id="meta-year">{{ car.year or "-" }}</div>
+            </div>
+            <div class="meta-item">
+                <div class="meta-label">Описание</div>
+                <div class="meta-value" id="meta-description">{{ car.description or "-" }}</div>
+            </div>
+        </div>
+    </section>
+</div>
+
+{% if is_admin %}
+<div id="modal-backdrop">
+    <div id="modal">
+        <h2>Редактирование автомобиля</h2>
+        <form id="car-form">
+            <div class="form-grid">
+                <label>
+                    Год
+                    <input id="year" name="year" type="number" min="1900" max="2100" value="{{ car.year or '' }}">
+                </label>
+                <label>
+                    Название
+                    <input id="name" name="name" value="{{ car.name }}" required>
+                </label>
+                <label>
+                    Номер авто
+                    <input id="car_number" name="car_number" value="{{ car.car_number }}">
+                </label>
+                <label>
+                    VIN
+                    <input id="vin" name="vin" value="{{ car.vin }}">
+                </label>
+                <label>
+                    Техпаспорт
+                    <input id="passport" name="passport" value="{{ car.passport }}">
+                </label>
+                <label>
+                    Номер страхового полиса
+                    <input id="insurance_policy_number" name="insurance_policy_number" value="{{ car.insurance_policy_number }}">
+                </label>
+                <label>
+                    Страховка действует до
+                    <input id="insurance_valid_until" name="insurance_valid_until" type="date" value="{{ car.insurance_valid_until }}">
+                </label>
+                <label>
+                    Техосмотр до
+                    <input id="inspection_valid_until" name="inspection_valid_until" type="date" value="{{ car.inspection_valid_until }}">
+                </label>
+                <label>
+                    Техническое обслуживание
+                    <input id="service_due_date" name="service_due_date" type="date" value="{{ car.service_due_date }}">
+                </label>
+                <label>
+                    Цена 1-3 дня
+                    <input id="price_1_3" name="price_1_3" type="number" step="0.01" min="0" value="{{ car.price_1_3 if car.price_1_3 is not none else '' }}">
+                </label>
+                <label>
+                    Цена 4-7 дней
+                    <input id="price_4_7" name="price_4_7" type="number" step="0.01" min="0" value="{{ car.price_4_7 if car.price_4_7 is not none else '' }}">
+                </label>
+                <label>
+                    Цена 8-14 дней
+                    <input id="price_8_14" name="price_8_14" type="number" step="0.01" min="0" value="{{ car.price_8_14 if car.price_8_14 is not none else '' }}">
+                </label>
+                <label>
+                    Текущий пробег
+                    <input id="current_mileage" name="current_mileage" type="number" min="0" value="{{ car.current_mileage or 0 }}">
+                </label>
+                <label>
+                    Пробег последнего ТО
+                    <input id="last_service_mileage" name="last_service_mileage" type="number" min="0" value="{{ car.last_service_mileage or 0 }}">
+                </label>
+                <label>
+                    Межсервисный интервал, км
+                    <input id="service_interval_km" name="service_interval_km" type="number" min="0" value="{{ car.service_interval_km or 0 }}">
+                </label>
+            </div>
+
+            <label>
+                Описание
+                <textarea id="description" name="description">{{ car.description }}</textarea>
+            </label>
+
+            <div class="actions" style="margin-top: 4px;">
+                <button type="submit">Сохранить</button>
+                <button class="button-danger" id="delete-car" type="button">Удалить авто</button>
+                <button class="button-secondary" id="close-edit" type="button">Отмена</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<script>
+const isAdmin = {{ "true" if is_admin else "false" }};
+const carId = {{ car.id }};
+const form = document.getElementById("car-form");
+const statusMessage = document.getElementById("status-message");
+const modalBackdrop = document.getElementById("modal-backdrop");
+
+function openModal() {
+    modalBackdrop.style.display = "flex";
+}
+
+function closeModal() {
+    modalBackdrop.style.display = "none";
+}
+
+function displayValue(value) {
+    return value && value.trim() ? value : "-";
+}
+
+function displayPrice(value) {
+    return value === null || value === undefined || value === "" ? "-" : "$" + value;
+}
+
+function displayNumber(value) {
+    return value === null || value === undefined || value === "" ? "0" : String(value);
+}
+
+function updateView(car) {
+    document.title = car.name;
+    document.getElementById("car-title").textContent = car.name;
+    document.getElementById("view-name").textContent = car.name;
+    document.getElementById("meta-name").textContent = car.name;
+    document.getElementById("view-year").textContent = car.year || "-";
+    document.getElementById("meta-year").textContent = car.year || "-";
+    document.getElementById("view-car-number").textContent = displayValue(car.car_number);
+    document.getElementById("key-car-number").textContent = displayValue(car.car_number);
+    document.getElementById("view-vin").textContent = displayValue(car.vin);
+    document.getElementById("meta-vin").textContent = displayValue(car.vin);
+    document.getElementById("view-passport").textContent = displayValue(car.passport);
+    document.getElementById("key-passport").textContent = displayValue(car.passport);
+    document.getElementById("view-insurance-policy").textContent = displayValue(car.insurance_policy_number);
+    document.getElementById("view-insurance-valid-until").textContent = displayValue(car.insurance_valid_until);
+    document.getElementById("view-inspection-valid-until").textContent = displayValue(car.inspection_valid_until);
+    document.getElementById("view-service-due-date").textContent = displayValue(car.service_due_date);
+    document.getElementById("view-current-mileage").textContent = displayNumber(car.current_mileage);
+    document.getElementById("view-last-service-mileage").textContent = displayNumber(car.last_service_mileage);
+    document.getElementById("view-service-interval-km").textContent = displayNumber(car.service_interval_km);
+    document.getElementById("meta-description").textContent = displayValue(car.description);
+    const badge = document.getElementById("view-insurance-status");
+    badge.textContent = car.insurance_status_label;
+    badge.style.background = car.insurance_status_color;
+    const inspectionBadge = document.getElementById("view-inspection-status");
+    inspectionBadge.textContent = car.inspection_status_label;
+    inspectionBadge.style.background = car.inspection_status_color;
+    const serviceBadge = document.getElementById("view-service-status");
+    serviceBadge.textContent = car.service_status_label;
+    serviceBadge.style.background = car.service_status_color;
+    document.getElementById("view-price-1-3").textContent = displayPrice(car.price_1_3);
+    document.getElementById("view-price-4-7").textContent = displayPrice(car.price_4_7);
+    document.getElementById("view-price-8-14").textContent = displayPrice(car.price_8_14);
+    document.getElementById("view-description").textContent = displayValue(car.description);
+}
+
+async function saveCar(event) {
+    event.preventDefault();
+    statusMessage.textContent = "";
+
+    const payload = {
+        year: document.getElementById("year").value.trim(),
+        name: document.getElementById("name").value.trim(),
+        car_number: document.getElementById("car_number").value.trim(),
+        vin: document.getElementById("vin").value.trim(),
+        passport: document.getElementById("passport").value.trim(),
+        insurance_policy_number: document.getElementById("insurance_policy_number").value.trim(),
+        insurance_valid_until: document.getElementById("insurance_valid_until").value.trim(),
+        inspection_valid_until: document.getElementById("inspection_valid_until").value.trim(),
+        service_due_date: document.getElementById("service_due_date").value.trim(),
+        price_1_3: document.getElementById("price_1_3").value.trim(),
+        price_4_7: document.getElementById("price_4_7").value.trim(),
+        price_8_14: document.getElementById("price_8_14").value.trim(),
+        current_mileage: document.getElementById("current_mileage").value.trim(),
+        last_service_mileage: document.getElementById("last_service_mileage").value.trim(),
+        service_interval_km: document.getElementById("service_interval_km").value.trim(),
+        description: document.getElementById("description").value.trim()
+    };
+
+    const response = await fetch("/car/" + carId + "/update", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        const message = data.error === "duplicate_name" ? "Название автомобиля должно быть уникальным." : data.error;
+        statusMessage.textContent = message;
+        statusMessage.style.color = "#b91c1c";
+        return;
+    }
+
+    updateView(data.car);
+    statusMessage.textContent = "Изменения сохранены.";
+    statusMessage.style.color = "#166534";
+    closeModal();
+}
+
+async function deleteCar() {
+    statusMessage.textContent = "";
+
+    if (!window.confirm("Удалить авто и все связанные бронирования?")) {
+        return;
+    }
+
+    const response = await fetch("/car/" + carId + "/delete", {
+        method: "POST"
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        statusMessage.textContent = data.error || "request_failed";
+        statusMessage.style.color = "#b91c1c";
+        return;
+    }
+
+    window.location.href = "/";
+}
+
+async function copyField(button) {
+    const target = document.getElementById(button.dataset.copyTarget);
+    const value = target.textContent.trim();
+    if (!value || value === "-") {
+        return;
+    }
+
+    await navigator.clipboard.writeText(value);
+    const originalText = button.textContent;
+    button.textContent = "Скопировано";
+    setTimeout(() => {
+        button.textContent = originalText;
+    }, 1200);
+}
+
+document.querySelectorAll("[data-copy-target]").forEach(button => {
+    button.addEventListener("click", () => {
+        copyField(button);
+    });
+});
+if (isAdmin) {
+    document.getElementById("open-edit").addEventListener("click", openModal);
+    document.getElementById("close-edit").addEventListener("click", closeModal);
+    document.getElementById("delete-car").addEventListener("click", deleteCar);
+    modalBackdrop.addEventListener("click", event => {
+        if (event.target === modalBackdrop) {
+            closeModal();
+        }
+    });
+    form.addEventListener("submit", saveCar);
+}
+</script>
+</body>
+</html>
