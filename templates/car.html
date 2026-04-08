@@ -52,7 +52,8 @@ body {
 
 .hero,
 .card,
-#modal {
+#modal,
+#contract-modal {
     background: var(--panel);
     border: 1px solid var(--line);
     box-shadow: var(--shadow);
@@ -199,6 +200,32 @@ a.button-link {
     background: var(--red);
 }
 
+.document-actions,
+.actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.document-actions {
+    flex-wrap: nowrap;
+}
+
+.document-button {
+    min-width: 170px;
+    flex: 1 1 0;
+    background: linear-gradient(135deg, #173b7a 0%, #1f4b99 55%, #3672d8 100%);
+    box-shadow: 0 14px 28px rgba(31, 75, 153, 0.22);
+}
+
+.document-button:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
 .meta-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -271,21 +298,14 @@ dd {
     word-break: break-word;
 }
 
-.actions {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 20px;
-}
-
 #status-message {
     min-height: 20px;
     color: var(--green);
     font-weight: 700;
 }
 
-#modal-backdrop {
+#modal-backdrop,
+#contract-choice-backdrop {
     display: none;
     position: fixed;
     inset: 0;
@@ -301,6 +321,12 @@ dd {
     padding: 24px;
 }
 
+#contract-modal {
+    width: min(560px, 100%);
+    border-radius: 22px;
+    padding: 24px;
+}
+
 #modal h2 {
     margin: 0 0 16px;
     color: var(--primary-strong);
@@ -311,10 +337,31 @@ form {
     gap: 16px;
 }
 
-.form-grid {
+.form-grid,
+.document-choice-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
+}
+
+.document-choice {
+    display: grid;
+    gap: 8px;
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid #dbe5f2;
+    background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+}
+
+.document-choice-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--primary-strong);
+}
+
+.document-choice-note {
+    color: var(--muted);
+    line-height: 1.5;
 }
 
 label {
@@ -346,12 +393,17 @@ textarea {
     .pricing-grid,
     .form-grid,
     .meta-grid,
+    .document-choice-grid,
     dl {
         grid-template-columns: 1fr;
     }
 
     .hero-top {
         flex-direction: column;
+    }
+
+    .document-actions {
+        flex-wrap: wrap;
     }
 }
 </style>
@@ -372,25 +424,13 @@ textarea {
             <div>
                 <h1 id="car-title">{{ car.name }}</h1>
                 <div class="hero-copy">
-                    Карточка автомобиля с ключевыми документами, тарифами, пробегом и параметрами обслуживания для аналитики. Номер авто и техпаспорт вынесены в быстрый доступ для копирования в один клик.
+                    Карточка автомобиля с ключевыми документами, тарифами, пробегом и параметрами обслуживания.
                 </div>
             </div>
             <div class="badge-group">
-                <span
-                    class="insurance-badge"
-                    id="view-insurance-status"
-                    style="background: {{ car.insurance_status_color }};"
-                >{{ car.insurance_status_label }}</span>
-                <span
-                    class="insurance-badge"
-                    id="view-inspection-status"
-                    style="background: {{ car.inspection_status_color }};"
-                >{{ car.inspection_status_label }}</span>
-                <span
-                    class="insurance-badge"
-                    id="view-service-status"
-                    style="background: {{ car.service_status_color }};"
-                >{{ car.service_status_label }}</span>
+                <span class="insurance-badge" id="view-insurance-status" style="background: {{ car.insurance_status_color }};">{{ car.insurance_status_label }}</span>
+                <span class="insurance-badge" id="view-inspection-status" style="background: {{ car.inspection_status_color }};">{{ car.inspection_status_label }}</span>
+                <span class="insurance-badge" id="view-service-status" style="background: {{ car.service_status_color }};">{{ car.service_status_label }}</span>
             </div>
         </div>
     </section>
@@ -426,9 +466,14 @@ textarea {
                 </div>
             </div>
 
+            <div class="document-actions">
+                <button class="document-button" id="open-contract" type="button">Договор</button>
+                <button class="document-button" id="open-insurance-file" type="button">Страховой полис</button>
+                <button class="document-button" id="open-inspection-file" type="button">Техосмотр</button>
+            </div>
             {% if is_admin %}
             <div class="actions">
-                <button id="open-edit" type="button">Редактировать</button>
+                <button class="button-danger" id="open-edit" type="button">Редактировать</button>
                 <div id="status-message"></div>
             </div>
             {% endif %}
@@ -496,72 +541,28 @@ textarea {
         <h2>Редактирование автомобиля</h2>
         <form id="car-form">
             <div class="form-grid">
-                <label>
-                    Год
-                    <input id="year" name="year" type="number" min="1900" max="2100" value="{{ car.year or '' }}">
-                </label>
-                <label>
-                    Название
-                    <input id="name" name="name" value="{{ car.name }}" required>
-                </label>
-                <label>
-                    Номер авто
-                    <input id="car_number" name="car_number" value="{{ car.car_number }}">
-                </label>
-                <label>
-                    VIN
-                    <input id="vin" name="vin" value="{{ car.vin }}">
-                </label>
-                <label>
-                    Техпаспорт
-                    <input id="passport" name="passport" value="{{ car.passport }}">
-                </label>
-                <label>
-                    Номер страхового полиса
-                    <input id="insurance_policy_number" name="insurance_policy_number" value="{{ car.insurance_policy_number }}">
-                </label>
-                <label>
-                    Страховка действует до
-                    <input id="insurance_valid_until" name="insurance_valid_until" type="date" value="{{ car.insurance_valid_until }}">
-                </label>
-                <label>
-                    Техосмотр до
-                    <input id="inspection_valid_until" name="inspection_valid_until" type="date" value="{{ car.inspection_valid_until }}">
-                </label>
-                <label>
-                    Техническое обслуживание
-                    <input id="service_due_date" name="service_due_date" type="date" value="{{ car.service_due_date }}">
-                </label>
-                <label>
-                    Цена 1-3 дня
-                    <input id="price_1_3" name="price_1_3" type="number" step="0.01" min="0" value="{{ car.price_1_3 if car.price_1_3 is not none else '' }}">
-                </label>
-                <label>
-                    Цена 4-7 дней
-                    <input id="price_4_7" name="price_4_7" type="number" step="0.01" min="0" value="{{ car.price_4_7 if car.price_4_7 is not none else '' }}">
-                </label>
-                <label>
-                    Цена 8-14 дней
-                    <input id="price_8_14" name="price_8_14" type="number" step="0.01" min="0" value="{{ car.price_8_14 if car.price_8_14 is not none else '' }}">
-                </label>
-                <label>
-                    Текущий пробег
-                    <input id="current_mileage" name="current_mileage" type="number" min="0" value="{{ car.current_mileage or 0 }}">
-                </label>
-                <label>
-                    Пробег последнего ТО
-                    <input id="last_service_mileage" name="last_service_mileage" type="number" min="0" value="{{ car.last_service_mileage or 0 }}">
-                </label>
-                <label>
-                    Межсервисный интервал, км
-                    <input id="service_interval_km" name="service_interval_km" type="number" min="0" value="{{ car.service_interval_km or 0 }}">
-                </label>
+                <label>Год<input id="year" name="year" type="number" min="1900" max="2100" value="{{ car.year or '' }}"></label>
+                <label>Название<input id="name" name="name" value="{{ car.name }}" required></label>
+                <label>Номер авто<input id="car_number" name="car_number" value="{{ car.car_number }}"></label>
+                <label>VIN<input id="vin" name="vin" value="{{ car.vin }}"></label>
+                <label>Техпаспорт<input id="passport" name="passport" value="{{ car.passport }}"></label>
+                <label>Номер страхового полиса<input id="insurance_policy_number" name="insurance_policy_number" value="{{ car.insurance_policy_number }}"></label>
+                <label>Страховка действует до<input id="insurance_valid_until" name="insurance_valid_until" type="date" value="{{ car.insurance_valid_until }}"></label>
+                <label>Техосмотр до<input id="inspection_valid_until" name="inspection_valid_until" type="date" value="{{ car.inspection_valid_until }}"></label>
+                <label>Техническое обслуживание<input id="service_due_date" name="service_due_date" type="date" value="{{ car.service_due_date }}"></label>
+                <label>Цена 1-3 дня<input id="price_1_3" name="price_1_3" type="number" step="0.01" min="0" value="{{ car.price_1_3 if car.price_1_3 is not none else '' }}"></label>
+                <label>Цена 4-7 дней<input id="price_4_7" name="price_4_7" type="number" step="0.01" min="0" value="{{ car.price_4_7 if car.price_4_7 is not none else '' }}"></label>
+                <label>Цена 8-14 дней<input id="price_8_14" name="price_8_14" type="number" step="0.01" min="0" value="{{ car.price_8_14 if car.price_8_14 is not none else '' }}"></label>
+                <label>Текущий пробег<input id="current_mileage" name="current_mileage" type="number" min="0" value="{{ car.current_mileage or 0 }}"></label>
+                <label>Пробег последнего ТО<input id="last_service_mileage" name="last_service_mileage" type="number" min="0" value="{{ car.last_service_mileage or 0 }}"></label>
+                <label>Межсервисный интервал, км<input id="service_interval_km" name="service_interval_km" type="number" min="0" value="{{ car.service_interval_km or 0 }}"></label>
+                <label>Ссылка на договор<input id="rental_contract_url" name="rental_contract_url" value="{{ car.rental_contract_url }}"></label>
+                <label>Локальный договор (.doc, .docx)<input id="rental_contract_file" name="rental_contract_file" type="file" accept=".doc,.docx"></label>
+                <label>Страховой полис (.jpg, .jpeg, .png, .pdf)<input id="insurance_file" name="insurance_file" type="file" accept=".jpg,.jpeg,.png,.pdf"></label>
+                <label>Диагностический лист (.jpg, .jpeg, .png, .pdf)<input id="inspection_file" name="inspection_file" type="file" accept=".jpg,.jpeg,.png,.pdf"></label>
             </div>
 
-            <label>
-                Описание
-                <textarea id="description" name="description">{{ car.description }}</textarea>
-            </label>
+            <label>Описание<textarea id="description" name="description">{{ car.description }}</textarea></label>
 
             <div class="actions" style="margin-top: 4px;">
                 <button type="submit">Сохранить</button>
@@ -573,23 +574,50 @@ textarea {
 </div>
 {% endif %}
 
+<div id="contract-choice-backdrop">
+    <div id="contract-modal">
+        <h2 class="section-title" style="margin-bottom:16px;">Выберите договор</h2>
+        <div class="document-choice-grid">
+            <div class="document-choice">
+                <div class="document-choice-title">Локальный файл</div>
+                <div class="document-choice-note">Открывает сохраненный договор аренды в формате Word.</div>
+                <button class="document-button" id="open-contract-file" type="button">Открыть файл</button>
+            </div>
+            <div class="document-choice">
+                <div class="document-choice-title">Ссылка</div>
+                <div class="document-choice-note">Открывает внешний договор, например Google Drive.</div>
+                <button class="document-button" id="open-contract-link" type="button">Открыть ссылку</button>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="button-secondary" id="close-contract-choice" type="button">Отмена</button>
+        </div>
+    </div>
+</div>
+
 <script>
 const isAdmin = {{ "true" if is_admin else "false" }};
 const carId = {{ car.id }};
+let currentCar = {{ car | tojson }};
 const form = document.getElementById("car-form");
 const statusMessage = document.getElementById("status-message");
 const modalBackdrop = document.getElementById("modal-backdrop");
+const contractChoiceBackdrop = document.getElementById("contract-choice-backdrop");
 
 function openModal() {
-    modalBackdrop.style.display = "flex";
+    if (modalBackdrop) {
+        modalBackdrop.style.display = "flex";
+    }
 }
 
 function closeModal() {
-    modalBackdrop.style.display = "none";
+    if (modalBackdrop) {
+        modalBackdrop.style.display = "none";
+    }
 }
 
 function displayValue(value) {
-    return value && value.trim() ? value : "-";
+    return value && String(value).trim() ? String(value) : "-";
 }
 
 function displayPrice(value) {
@@ -600,7 +628,47 @@ function displayNumber(value) {
     return value === null || value === undefined || value === "" ? "0" : String(value);
 }
 
+function documentUrl(fieldName) {
+    return "/car/" + carId + "/documents/" + fieldName;
+}
+
+function updateDocumentButtons(car) {
+    document.getElementById("open-contract").disabled = !car.rental_contract_file && !car.rental_contract_url;
+    document.getElementById("open-insurance-file").disabled = !car.insurance_file;
+    document.getElementById("open-inspection-file").disabled = !car.inspection_file;
+    document.getElementById("open-contract-file").disabled = !car.rental_contract_file;
+    document.getElementById("open-contract-link").disabled = !car.rental_contract_url;
+}
+
+function fillEditForm(car) {
+    if (!isAdmin) {
+        return;
+    }
+
+    document.getElementById("year").value = car.year || "";
+    document.getElementById("name").value = car.name || "";
+    document.getElementById("car_number").value = car.car_number || "";
+    document.getElementById("vin").value = car.vin || "";
+    document.getElementById("passport").value = car.passport || "";
+    document.getElementById("insurance_policy_number").value = car.insurance_policy_number || "";
+    document.getElementById("insurance_valid_until").value = car.insurance_valid_until || "";
+    document.getElementById("inspection_valid_until").value = car.inspection_valid_until || "";
+    document.getElementById("service_due_date").value = car.service_due_date || "";
+    document.getElementById("price_1_3").value = car.price_1_3 ?? "";
+    document.getElementById("price_4_7").value = car.price_4_7 ?? "";
+    document.getElementById("price_8_14").value = car.price_8_14 ?? "";
+    document.getElementById("current_mileage").value = car.current_mileage ?? 0;
+    document.getElementById("last_service_mileage").value = car.last_service_mileage ?? 0;
+    document.getElementById("service_interval_km").value = car.service_interval_km ?? 0;
+    document.getElementById("rental_contract_url").value = car.rental_contract_url || "";
+    document.getElementById("description").value = car.description || "";
+    document.getElementById("rental_contract_file").value = "";
+    document.getElementById("insurance_file").value = "";
+    document.getElementById("inspection_file").value = "";
+}
+
 function updateView(car) {
+    currentCar = car;
     document.title = car.name;
     document.getElementById("car-title").textContent = car.name;
     document.getElementById("view-name").textContent = car.name;
@@ -621,50 +689,65 @@ function updateView(car) {
     document.getElementById("view-last-service-mileage").textContent = displayNumber(car.last_service_mileage);
     document.getElementById("view-service-interval-km").textContent = displayNumber(car.service_interval_km);
     document.getElementById("meta-description").textContent = displayValue(car.description);
-    const badge = document.getElementById("view-insurance-status");
-    badge.textContent = car.insurance_status_label;
-    badge.style.background = car.insurance_status_color;
-    const inspectionBadge = document.getElementById("view-inspection-status");
-    inspectionBadge.textContent = car.inspection_status_label;
-    inspectionBadge.style.background = car.inspection_status_color;
-    const serviceBadge = document.getElementById("view-service-status");
-    serviceBadge.textContent = car.service_status_label;
-    serviceBadge.style.background = car.service_status_color;
     document.getElementById("view-price-1-3").textContent = displayPrice(car.price_1_3);
     document.getElementById("view-price-4-7").textContent = displayPrice(car.price_4_7);
     document.getElementById("view-price-8-14").textContent = displayPrice(car.price_8_14);
     document.getElementById("view-description").textContent = displayValue(car.description);
+
+    const insuranceBadge = document.getElementById("view-insurance-status");
+    insuranceBadge.textContent = car.insurance_status_label;
+    insuranceBadge.style.background = car.insurance_status_color;
+
+    const inspectionBadge = document.getElementById("view-inspection-status");
+    inspectionBadge.textContent = car.inspection_status_label;
+    inspectionBadge.style.background = car.inspection_status_color;
+
+    const serviceBadge = document.getElementById("view-service-status");
+    serviceBadge.textContent = car.service_status_label;
+    serviceBadge.style.background = car.service_status_color;
+
+    updateDocumentButtons(car);
+    fillEditForm(car);
 }
 
 async function saveCar(event) {
     event.preventDefault();
     statusMessage.textContent = "";
 
-    const payload = {
-        year: document.getElementById("year").value.trim(),
-        name: document.getElementById("name").value.trim(),
-        car_number: document.getElementById("car_number").value.trim(),
-        vin: document.getElementById("vin").value.trim(),
-        passport: document.getElementById("passport").value.trim(),
-        insurance_policy_number: document.getElementById("insurance_policy_number").value.trim(),
-        insurance_valid_until: document.getElementById("insurance_valid_until").value.trim(),
-        inspection_valid_until: document.getElementById("inspection_valid_until").value.trim(),
-        service_due_date: document.getElementById("service_due_date").value.trim(),
-        price_1_3: document.getElementById("price_1_3").value.trim(),
-        price_4_7: document.getElementById("price_4_7").value.trim(),
-        price_8_14: document.getElementById("price_8_14").value.trim(),
-        current_mileage: document.getElementById("current_mileage").value.trim(),
-        last_service_mileage: document.getElementById("last_service_mileage").value.trim(),
-        service_interval_km: document.getElementById("service_interval_km").value.trim(),
-        description: document.getElementById("description").value.trim()
-    };
+    const payload = new FormData();
+    [
+        "year",
+        "name",
+        "car_number",
+        "vin",
+        "passport",
+        "insurance_policy_number",
+        "insurance_valid_until",
+        "inspection_valid_until",
+        "service_due_date",
+        "price_1_3",
+        "price_4_7",
+        "price_8_14",
+        "current_mileage",
+        "last_service_mileage",
+        "service_interval_km",
+        "description",
+        "rental_contract_url"
+    ].forEach(fieldName => {
+        payload.append(fieldName, document.getElementById(fieldName).value.trim());
+    });
+
+    ["rental_contract_file", "insurance_file", "inspection_file"].forEach(fieldName => {
+        const input = document.getElementById(fieldName);
+        if (input.files.length) {
+            payload.append(fieldName, input.files[0]);
+        }
+    });
 
     const response = await fetch("/car/" + carId + "/update", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(payload)
+        body: payload
     });
-
     const data = await response.json();
 
     if (!response.ok) {
@@ -687,10 +770,7 @@ async function deleteCar() {
         return;
     }
 
-    const response = await fetch("/car/" + carId + "/delete", {
-        method: "POST"
-    });
-
+    const response = await fetch("/car/" + carId + "/delete", {method: "POST"});
     const data = await response.json();
 
     if (!response.ok) {
@@ -717,11 +797,47 @@ async function copyField(button) {
     }, 1200);
 }
 
+function openContractChoice() {
+    updateDocumentButtons(currentCar);
+    contractChoiceBackdrop.style.display = "flex";
+}
+
+function closeContractChoice() {
+    contractChoiceBackdrop.style.display = "none";
+}
+
+function openDocument(fieldName) {
+    if (!currentCar[fieldName]) {
+        return;
+    }
+    window.open(documentUrl(fieldName), "_blank", "noopener");
+}
+
 document.querySelectorAll("[data-copy-target]").forEach(button => {
-    button.addEventListener("click", () => {
-        copyField(button);
-    });
+    button.addEventListener("click", () => copyField(button));
 });
+
+document.getElementById("open-contract").addEventListener("click", openContractChoice);
+document.getElementById("open-contract-file").addEventListener("click", () => {
+    openDocument("rental_contract_file");
+    closeContractChoice();
+});
+document.getElementById("open-contract-link").addEventListener("click", () => {
+    if (!currentCar.rental_contract_url) {
+        return;
+    }
+    window.open(currentCar.rental_contract_url, "_blank", "noopener");
+    closeContractChoice();
+});
+document.getElementById("close-contract-choice").addEventListener("click", closeContractChoice);
+document.getElementById("open-insurance-file").addEventListener("click", () => openDocument("insurance_file"));
+document.getElementById("open-inspection-file").addEventListener("click", () => openDocument("inspection_file"));
+contractChoiceBackdrop.addEventListener("click", event => {
+    if (event.target === contractChoiceBackdrop) {
+        closeContractChoice();
+    }
+});
+
 if (isAdmin) {
     document.getElementById("open-edit").addEventListener("click", openModal);
     document.getElementById("close-edit").addEventListener("click", closeModal);
@@ -733,6 +849,9 @@ if (isAdmin) {
     });
     form.addEventListener("submit", saveCar);
 }
+
+updateDocumentButtons(currentCar);
+fillEditForm(currentCar);
 </script>
 </body>
 </html>
