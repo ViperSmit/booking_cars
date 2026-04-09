@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<script src="/static/header.js" defer></script>
 <title>Вход</title>
 <style>
 :root {
@@ -19,13 +20,20 @@
 body {
     margin: 0;
     min-height: 100vh;
-    display: grid;
-    place-items: center;
+    display: flex;
+    flex-direction: column;
     font-family: Aptos, "Segoe UI", sans-serif;
     color: var(--text);
     background:
         radial-gradient(circle at top left, rgba(31, 75, 153, 0.10), transparent 30%),
         linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
+}
+
+.login-shell {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px 32px;
 }
 
 .card {
@@ -105,6 +113,8 @@ button {
 <link rel="stylesheet" href="/static/theme.css">
 </head>
 <body>
+{% include "includes/app_header.html" %}
+<div class="login-shell">
 <section class="card">
     <div class="eyebrow">Контроль доступа</div>
     <h1>Вход в систему</h1>
@@ -131,5 +141,6 @@ button {
         Дефолтные пользователи после инициализации БД: `admin` и `viewer`.
     </div>
 </section>
+</div>
 </body>
 </html>

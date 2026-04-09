@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<script src="/static/header.js" defer></script>
 <title>Журнал изменений</title>
 <style>
 :root {
@@ -172,12 +173,10 @@ pre {
 <link rel="stylesheet" href="/static/theme.css">
 </head>
 <body>
+{% include "includes/app_header.html" %}
 <div class="page">
     <div class="topbar">
         <a class="back-link" href="/">← Назад к календарю</a>
-        <form class="logout-form" action="/logout" method="post">
-            <button class="logout-button" type="submit">Выйти</button>
-        </form>
     </div>
 
     <section class="hero">

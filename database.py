@@ -72,6 +72,10 @@ def ensure_car_schema(cursor):
         "current_mileage": "INTEGER",
         "last_service_mileage": "INTEGER",
         "service_interval_km": "INTEGER",
+        "rental_contract_file": "TEXT",
+        "rental_contract_url": "TEXT",
+        "insurance_file": "TEXT",
+        "inspection_file": "TEXT",
     }
 
     for column, column_type in additions.items():
@@ -369,6 +373,10 @@ def normalize_car_row(row):
         "current_mileage": row["current_mileage"] or 0,
         "last_service_mileage": row["last_service_mileage"] or 0,
         "service_interval_km": row["service_interval_km"] or 0,
+        "rental_contract_file": row["rental_contract_file"] or "",
+        "rental_contract_url": row["rental_contract_url"] or "",
+        "insurance_file": row["insurance_file"] or "",
+        "inspection_file": row["inspection_file"] or "",
     }
 
 
@@ -513,7 +521,8 @@ def load_analytics_records(conn):
             """
             SELECT id, name, year, car_number, vin, passport, insurance_policy_number,
                    insurance_valid_until, inspection_valid_until, service_due_date, description,
-                   price_1_3, price_4_7, price_8_14, current_mileage, last_service_mileage, service_interval_km
+                   price_1_3, price_4_7, price_8_14, current_mileage, last_service_mileage, service_interval_km,
+                   rental_contract_file, rental_contract_url, insurance_file, inspection_file
             FROM cars
             ORDER BY name
             """
@@ -849,6 +858,10 @@ def init_db():
             current_mileage INTEGER,
             last_service_mileage INTEGER,
             service_interval_km INTEGER,
+            rental_contract_file TEXT,
+            rental_contract_url TEXT,
+            insurance_file TEXT,
+            inspection_file TEXT,
             plate TEXT,
             insurance TEXT
         )
@@ -1056,6 +1069,10 @@ def sync_seed_to_db():
             car.get("current_mileage"),
             car.get("last_service_mileage"),
             car.get("service_interval_km"),
+            car.get("rental_contract_file"),
+            car.get("rental_contract_url"),
+            car.get("insurance_file"),
+            car.get("inspection_file"),
             car.get("car_number"),
             car.get("insurance_policy_number"),
         )
@@ -1067,7 +1084,8 @@ def sync_seed_to_db():
                 SET name = ?, year = ?, car_number = ?, vin = ?, passport = ?,
                     insurance_policy_number = ?, insurance_valid_until = ?, inspection_valid_until = ?, service_due_date = ?,
                     description = ?, price_1_3 = ?, price_4_7 = ?, price_8_14 = ?,
-                    current_mileage = ?, last_service_mileage = ?, service_interval_km = ?, plate = ?, insurance = ?
+                    current_mileage = ?, last_service_mileage = ?, service_interval_km = ?,
+                    rental_contract_file = ?, rental_contract_url = ?, insurance_file = ?, inspection_file = ?, plate = ?, insurance = ?
                 WHERE id = ?
                 """,
                 (*payload, existing["id"]),
@@ -1078,8 +1096,9 @@ def sync_seed_to_db():
                 INSERT INTO cars
                 (name, year, car_number, vin, passport, insurance_policy_number,
                  insurance_valid_until, inspection_valid_until, service_due_date, description, price_1_3, price_4_7, price_8_14,
-                 current_mileage, last_service_mileage, service_interval_km, plate, insurance)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 current_mileage, last_service_mileage, service_interval_km,
+                 rental_contract_file, rental_contract_url, insurance_file, inspection_file, plate, insurance)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 payload,
             )
@@ -1095,7 +1114,8 @@ def list_cars():
         SELECT id, name, year, car_number, vin, passport,
                insurance_policy_number, insurance_valid_until, inspection_valid_until, service_due_date,
                description, price_1_3, price_4_7, price_8_14,
-               current_mileage, last_service_mileage, service_interval_km
+               current_mileage, last_service_mileage, service_interval_km,
+               rental_contract_file, rental_contract_url, insurance_file, inspection_file
         FROM cars
         ORDER BY name
         """
@@ -1111,7 +1131,8 @@ def get_car(car_id):
         SELECT id, name, year, car_number, vin, passport,
                insurance_policy_number, insurance_valid_until, inspection_valid_until, service_due_date,
                description, price_1_3, price_4_7, price_8_14,
-               current_mileage, last_service_mileage, service_interval_km
+               current_mileage, last_service_mileage, service_interval_km,
+               rental_contract_file, rental_contract_url, insurance_file, inspection_file
         FROM cars
         WHERE id = ?
         """,
@@ -1137,8 +1158,9 @@ def create_car_record(data):
         """
         INSERT INTO cars
         (name, year, car_number, vin, passport, insurance_policy_number, insurance_valid_until, inspection_valid_until,
-         service_due_date, description, price_1_3, price_4_7, price_8_14, current_mileage, last_service_mileage, service_interval_km, plate, insurance)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         service_due_date, description, price_1_3, price_4_7, price_8_14, current_mileage, last_service_mileage, service_interval_km,
+         rental_contract_file, rental_contract_url, insurance_file, inspection_file, plate, insurance)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             data["name"],
@@ -1157,6 +1179,10 @@ def create_car_record(data):
             data["current_mileage"],
             data["last_service_mileage"],
             data["service_interval_km"],
+            data["rental_contract_file"],
+            data["rental_contract_url"],
+            data["insurance_file"],
+            data["inspection_file"],
             data["car_number"],
             data["insurance_policy_number"],
         ),
@@ -1199,7 +1225,8 @@ def update_car_record(car_id, data):
         UPDATE cars
         SET name = ?, year = ?, car_number = ?, vin = ?, passport = ?,
             insurance_policy_number = ?, insurance_valid_until = ?, inspection_valid_until = ?, service_due_date = ?, description = ?,
-            price_1_3 = ?, price_4_7 = ?, price_8_14 = ?, current_mileage = ?, last_service_mileage = ?, service_interval_km = ?, plate = ?, insurance = ?
+            price_1_3 = ?, price_4_7 = ?, price_8_14 = ?, current_mileage = ?, last_service_mileage = ?, service_interval_km = ?,
+            rental_contract_file = ?, rental_contract_url = ?, insurance_file = ?, inspection_file = ?, plate = ?, insurance = ?
         WHERE id = ?
         """,
         (
@@ -1219,6 +1246,10 @@ def update_car_record(car_id, data):
             data["current_mileage"],
             data["last_service_mileage"],
             data["service_interval_km"],
+            data["rental_contract_file"],
+            data["rental_contract_url"],
+            data["insurance_file"],
+            data["inspection_file"],
             data["car_number"],
             data["insurance_policy_number"],
             car_id,

@@ -1,9 +1,11 @@
 import os
+import shutil
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, g, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, abort, g, jsonify, redirect, render_template, request, send_file, session, url_for
 from datetime import date, timedelta
+from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from database import (
@@ -44,11 +46,22 @@ app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("BOOKING_CARS_SESSION_SAMESITE", "Lax")
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("BOOKING_CARS_SESSION_SECURE", "false").lower() == "true"
 app.config["PERMANENT_SESSION_LIFETIME"] = int(os.getenv("BOOKING_CARS_SESSION_LIFETIME_SECONDS", "43200"))
+app.config["UPLOAD_FOLDER"] = Path(app.root_path) / "uploads"
 
 if os.getenv("BOOKING_CARS_PROXY_FIX", "false").lower() == "true":
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
 ALLOWED_STATUSES = {"reserved", "issued", "repair"}
+CAR_DOCUMENT_FIELDS = {
+    "rental_contract_file": {"stem": "rental_contract", "extensions": {"doc", "docx"}},
+    "insurance_file": {"stem": "insurance_policy", "extensions": {"jpg", "jpeg", "png", "pdf"}},
+    "inspection_file": {"stem": "inspection_report", "extensions": {"jpg", "jpeg", "png", "pdf"}},
+}
+CAR_DOCUMENT_DOWNLOAD_NAMES = {
+    "rental_contract_file": "rental_contract",
+    "insurance_file": "insurance_policy",
+    "inspection_file": "inspection_report",
+}
 
 
 def get_request_ip():
@@ -225,9 +238,90 @@ def validate_car_payload(data):
         "inspection_valid_until": inspection_valid_until,
         "service_due_date": service_due_date,
         "description": (data.get("description") or "").strip() or None,
+        "rental_contract_file": (data.get("rental_contract_file") or "").strip() or None,
+        "rental_contract_url": (data.get("rental_contract_url") or "").strip() or None,
+        "insurance_file": (data.get("insurance_file") or "").strip() or None,
+        "inspection_file": (data.get("inspection_file") or "").strip() or None,
         **integer_fields,
         **prices,
     }, None
+
+
+def get_car_request_payload():
+    if request.is_json:
+        return request.get_json(silent=True)
+    return request.form.to_dict()
+
+
+def get_extension(filename):
+    safe_name = secure_filename(filename or "")
+    if "." not in safe_name:
+        return ""
+    return safe_name.rsplit(".", 1)[1].lower()
+
+
+def save_car_document(car_id, file_storage, field_name):
+    if not file_storage or not file_storage.filename:
+        return None, None
+
+    config = CAR_DOCUMENT_FIELDS[field_name]
+    extension = get_extension(file_storage.filename)
+    if extension not in config["extensions"]:
+        return None, f"invalid_{field_name}"
+
+    car_folder = app.config["UPLOAD_FOLDER"] / "cars" / str(car_id)
+    car_folder.mkdir(parents=True, exist_ok=True)
+
+    for existing_file in car_folder.glob(f"{config['stem']}.*"):
+        existing_file.unlink(missing_ok=True)
+
+    target = car_folder / f"{config['stem']}.{extension}"
+    file_storage.save(target)
+    relative_path = target.relative_to(app.root_path).as_posix()
+    return relative_path, None
+
+
+def validate_uploaded_car_documents():
+    if request.is_json:
+        return None
+
+    for field_name, config in CAR_DOCUMENT_FIELDS.items():
+        file_storage = request.files.get(field_name)
+        if not file_storage or not file_storage.filename:
+            continue
+        extension = get_extension(file_storage.filename)
+        if extension not in config["extensions"]:
+            return f"invalid_{field_name}"
+
+    return None
+
+
+def apply_car_document_updates(car_id, data):
+    if request.is_json:
+        return {}, None
+
+    updates = {}
+    for field_name in CAR_DOCUMENT_FIELDS:
+        saved_path, error = save_car_document(car_id, request.files.get(field_name), field_name)
+        if error:
+            return None, error
+        if saved_path:
+            updates[field_name] = saved_path
+
+    return updates, None
+
+
+def get_document_path(relative_path):
+    if not relative_path:
+        return None
+
+    candidate = (Path(app.root_path) / relative_path).resolve()
+    uploads_root = app.config["UPLOAD_FOLDER"].resolve()
+    if uploads_root not in candidate.parents:
+        return None
+    if not candidate.exists() or not candidate.is_file():
+        return None
+    return candidate
 
 
 def next_month_start(input_date):
@@ -409,14 +503,27 @@ def cars():
 @app.route("/cars/add", methods=["POST"])
 @role_required("admin")
 def add_car():
-    data, error = validate_car_payload(request.get_json(silent=True))
+    data, error = validate_car_payload(get_car_request_payload())
     if error:
         message, code = error
         return jsonify({"error": message}), code
 
+    upload_validation_error = validate_uploaded_car_documents()
+    if upload_validation_error:
+        return jsonify({"error": upload_validation_error}), 400
+
     car, db_error = create_car_record(data)
     if db_error == "duplicate_name":
         return jsonify({"error": db_error}), 409
+
+    document_updates, upload_error = apply_car_document_updates(car["id"], data)
+    if upload_error:
+        return jsonify({"error": upload_error}), 400
+    if document_updates:
+        data.update(document_updates)
+        car, db_error = update_car_record(car["id"], data)
+        if db_error:
+            return jsonify({"error": db_error}), 400
 
     add_audit_log(get_request_ip(), current_username(), "create", "car", car["id"], car)
 
@@ -471,13 +578,50 @@ def car_page(car_id):
     return render_template("car.html", car=car)
 
 
+@app.route("/car/<int:car_id>/documents/<string:document_key>")
+@login_required
+def car_document(car_id, document_key):
+    if document_key not in CAR_DOCUMENT_FIELDS:
+        abort(404)
+
+    car = get_car(car_id)
+    if not car:
+        abort(404)
+
+    relative_path = car.get(document_key)
+    path = get_document_path(relative_path)
+    if not path:
+        abort(404)
+
+    download_name = f"{CAR_DOCUMENT_DOWNLOAD_NAMES[document_key]}{path.suffix.lower()}"
+    return send_file(path, as_attachment=False, download_name=download_name)
+
+
 @app.route("/car/<int:car_id>/update", methods=["POST"])
 @role_required("admin")
 def update_car(car_id):
-    data, error = validate_car_payload(request.get_json(silent=True))
+    current_car = get_car(car_id)
+    if not current_car:
+        return jsonify({"error": "car_not_found"}), 404
+
+    data, error = validate_car_payload(get_car_request_payload())
     if error:
         message, code = error
         return jsonify({"error": message}), code
+
+    upload_validation_error = validate_uploaded_car_documents()
+    if upload_validation_error:
+        return jsonify({"error": upload_validation_error}), 400
+
+    data["rental_contract_file"] = current_car["rental_contract_file"] or None
+    data["insurance_file"] = current_car["insurance_file"] or None
+    data["inspection_file"] = current_car["inspection_file"] or None
+
+    document_updates, upload_error = apply_car_document_updates(car_id, data)
+    if upload_error:
+        return jsonify({"error": upload_error}), 400
+    if document_updates:
+        data.update(document_updates)
 
     car, db_error = update_car_record(car_id, data)
     if db_error == "car_not_found":
@@ -497,6 +641,10 @@ def delete_car(car_id):
     deleted = delete_car_record(car_id)
     if not deleted:
         return jsonify({"error": "car_not_found"}), 404
+
+    documents_folder = app.config["UPLOAD_FOLDER"] / "cars" / str(car_id)
+    if documents_folder.exists():
+        shutil.rmtree(documents_folder, ignore_errors=True)
 
     add_audit_log(get_request_ip(), current_username(), "delete", "car", car_id, car)
 

@@ -303,6 +303,17 @@ details.admin-menu summary::-webkit-details-marker {
     margin-bottom: 14px;
 }
 
+.scheduler-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.scheduler-nav button {
+    min-width: 112px;
+}
+
 .scheduler-title {
     font-size: 23px;
     font-weight: 800;
@@ -321,6 +332,101 @@ details.admin-menu summary::-webkit-details-marker {
     border: 1px solid var(--line);
     border-radius: 20px;
     overflow: hidden;
+}
+
+#scheduler .scheduler_default_corner,
+#scheduler .scheduler_default_colheader,
+#scheduler .scheduler_default_rowheader,
+#scheduler .scheduler_default_rowheader_inner,
+#scheduler .scheduler_default_timeheader,
+#scheduler .scheduler_default_timeheadergroup,
+#scheduler .scheduler_default_timeheadercol {
+    background: linear-gradient(180deg, #ffffff 0%, #f6f9fd 100%);
+    color: var(--primary-strong);
+    border-color: #dbe5f2;
+}
+
+#scheduler .scheduler_default_corner div,
+#scheduler .scheduler_default_colheader div,
+#scheduler .scheduler_default_rowheader_inner,
+#scheduler .scheduler_default_timeheadergroup_inner,
+#scheduler .scheduler_default_timeheadercol_inner {
+    color: var(--primary-strong);
+    font-weight: 700;
+}
+
+#scheduler .scheduler_default_matrix_vertical_line,
+#scheduler .scheduler_default_matrix_horizontal_line {
+    border-color: #e3ebf5;
+}
+
+#scheduler .scheduler_default_cell {
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+#scheduler * {
+    scrollbar-width: thin;
+    scrollbar-color: #8fb4e8 #edf4fb;
+}
+
+#scheduler ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+#scheduler ::-webkit-scrollbar-track {
+    background: #edf4fb;
+}
+
+#scheduler ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #86adda 0%, #5f8fcb 100%);
+    border-radius: 999px;
+    border: 2px solid #edf4fb;
+}
+
+#scheduler ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #6e9cd3 0%, #4e80bd 100%);
+}
+
+#scheduler .scheduler-cell-today,
+#scheduler .scheduler-cell-today div,
+#scheduler .scheduler_default_cell.scheduler-cell-today,
+#scheduler .scheduler_default_cell.scheduler-cell-today.scheduler_default_cell_business,
+#scheduler .scheduler_default_colheader.scheduler-cell-today,
+#scheduler .scheduler_default_timeheadercol.scheduler-cell-today,
+#scheduler .scheduler_default_timeheadercol.scheduler-cell-today div {
+    background: linear-gradient(180deg, #dff0ff 0%, #edf7ff 100%) !important;
+    box-shadow: inset 0 0 0 1px #9dc6ee !important;
+}
+
+#scheduler .scheduler-cell-weekend,
+#scheduler .scheduler-cell-weekend div,
+#scheduler .scheduler_default_cell.scheduler-cell-weekend,
+#scheduler .scheduler_default_cell.scheduler-cell-weekend.scheduler_default_cell_business,
+#scheduler .scheduler_default_colheader.scheduler-cell-weekend,
+#scheduler .scheduler_default_timeheadercol.scheduler-cell-weekend,
+#scheduler .scheduler_default_timeheadercol.scheduler-cell-weekend div {
+    background: linear-gradient(180deg, #eef6ff 0%, #f7fbff 100%) !important;
+    box-shadow: inset 0 0 0 1px #d0e2f6 !important;
+}
+
+#scheduler .scheduler_default_rowheader_inner {
+    padding: 10px 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#scheduler .scheduler_default_event {
+    border-radius: 12px;
+    border: 0;
+    box-shadow: 0 12px 24px rgba(31, 75, 153, 0.18);
+}
+
+#scheduler .scheduler_default_event_inner {
+    border-radius: 12px;
+    padding: 6px 8px;
+    font-weight: 700;
 }
 
 .bottom-bar {
@@ -365,6 +471,12 @@ details.admin-menu summary::-webkit-details-marker {
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
+    margin-left: auto;
+    justify-content: flex-end;
+}
+
+.whiteboard-tools > .tool-group:last-child {
+    margin-left: auto;
 }
 
 .tool-group {
@@ -375,6 +487,23 @@ details.admin-menu summary::-webkit-details-marker {
     border-radius: 14px;
     background: var(--panel-alt);
     border: 1px solid var(--line);
+}
+
+.tool-group-stack {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.tool-group-stack input[type="range"] {
+    width: 180px;
+}
+
+.tool-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .tool-group label {
@@ -703,6 +832,11 @@ button:hover {
                 <div class="scheduler-title">Операционный календарь</div>
                 <div class="scheduler-subtitle">Создавайте, переносите и редактируйте бронирования прямо в сетке.</div>
             </div>
+            <div class="scheduler-nav">
+                <button class="button-secondary" id="scheduler-prev-5" type="button">-5 дней</button>
+                <button class="button-secondary" id="scheduler-today" type="button">Сегодня</button>
+                <button class="button-secondary" id="scheduler-next-5" type="button">+5 дней</button>
+            </div>
         </div>
 
         <div id="scheduler"></div>
@@ -952,6 +1086,9 @@ const weatherIcon = document.getElementById("weather-icon");
 const weatherTemp = document.getElementById("weather-temp");
 const weatherStatus = document.getElementById("weather-status");
 const weatherUpdated = document.getElementById("weather-updated");
+const schedulerPrev5Button = document.getElementById("scheduler-prev-5");
+const schedulerTodayButton = document.getElementById("scheduler-today");
+const schedulerNext5Button = document.getElementById("scheduler-next-5");
 const isAdmin = {{ "true" if is_admin else "false" }};
 const whiteboard = document.getElementById("whiteboard");
 const whiteboardContext = whiteboard.getContext("2d");
@@ -967,6 +1104,8 @@ const WHITEBOARD_STORAGE_KEY = "booking_cars_whiteboard_v2";
 const WHITEBOARD_TEMPLATE_VERSION_KEY = "booking_cars_whiteboard_template_version";
 const WHITEBOARD_TEMPLATE_VERSION = "photo_3";
 const BATUMI_WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=41.6168&longitude=41.6367&current=temperature_2m,weather_code&timezone=auto";
+const RUSSIAN_MONTHS = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+const RUSSIAN_WEEKDAYS_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
 let currentBrushColor = "#122033";
 let currentBrushSize = Number(brushSizeInput.value);
 let currentTextSize = Number(textSizeInput.value);
@@ -1232,6 +1371,33 @@ function mapWeatherCode(weatherCode) {
     return {icon: "☁️", label: "Погода"};
 }
 
+function shiftSchedulerDays(offsetDays) {
+    if (!dp) {
+        return;
+    }
+
+    dp.startDate = dp.startDate.addDays(offsetDays);
+    dp.update();
+}
+
+function goToTodayInScheduler() {
+    if (!dp) {
+        return;
+    }
+
+    dp.startDate = DayPilot.Date.today();
+    dp.update();
+}
+
+function dayPilotDateToJsDate(value) {
+    return new Date(String(value));
+}
+
+function isWeekendDate(date) {
+    const day = date.getDay();
+    return day === 0 || day === 6;
+}
+
 async function loadBatumiWeather() {
     try {
         const response = await fetch(BATUMI_WEATHER_URL);
@@ -1261,11 +1427,7 @@ function updateDashboardStats(cars, bookings) {
     document.getElementById("stat-bookings").textContent = String(bookings.length);
 
     const now = new Date();
-    const todayKey = [
-        now.getFullYear(),
-        String(now.getMonth() + 1).padStart(2, "0"),
-        String(now.getDate()).padStart(2, "0")
-    ].join("-");
+    const todayKey = formatDateKey(now);
     const activeToday = bookings.filter(booking => {
         const start = new Date(booking.start);
         const end = new Date(booking.end);
@@ -1277,7 +1439,7 @@ function updateDashboardStats(cars, bookings) {
         .filter(booking => (booking.status || "reserved") !== "repair" && String(booking.start).slice(0, 10) === todayKey)
         .sort((left, right) => String(left.booking_time || "23:59").localeCompare(String(right.booking_time || "23:59")));
     const todayReturns = bookings
-        .filter(booking => (booking.status || "reserved") !== "repair" && String(booking.end).slice(0, 10) === todayKey)
+        .filter(booking => (booking.status || "reserved") !== "repair" && getReturnDateKey(booking.end) === todayKey)
         .sort((left, right) => String(left.booking_time || "23:59").localeCompare(String(right.booking_time || "23:59")));
 
     const checkoutNote = todayCheckouts.length
@@ -1343,6 +1505,8 @@ async function init() {
 
     dp = new DayPilot.Scheduler("scheduler");
     dp.rowHeaderColumns = [{title: "Car", display: "name"}];
+    dp.rowHeaderWidthSpec = "Fixed";
+    dp.rowHeaderWidth = 144;
     dp.resources = cars.map(car => ({
         name: car.name,
         id: car.id
@@ -1355,8 +1519,8 @@ async function init() {
     dp.cellDuration = 720;
     dp.timeHeaders = [
         {groupBy: "Month"},
-        {groupBy: "Day", format: "dddd d"},
-        {groupBy: "Cell", format: args => args.start.getHours() === 0 ? "AM" : "PM"}
+        {groupBy: "Day"},
+        {groupBy: "Cell"}
     ];
 
     dp.onRowClick = args => {
@@ -1378,6 +1542,51 @@ async function init() {
         }
 
         args.data.fontColor = "white";
+    };
+
+    dp.onBeforeCellRender = args => {
+        const today = DayPilot.Date.today();
+        const cellStart = args.cell.start.getDatePart();
+        const cellDate = dayPilotDateToJsDate(cellStart);
+
+        if (isWeekendDate(cellDate)) {
+            args.cell.cssClass = "scheduler-cell-weekend";
+            args.cell.properties = args.cell.properties || {};
+            args.cell.properties.cssClass = "scheduler-cell-weekend";
+        }
+
+        if (cellStart.equals(today)) {
+            args.cell.backColor = "#dff0ff";
+            args.cell.borderColor = "#9dc6ee";
+            args.cell.cssClass = "scheduler-cell-today";
+            args.cell.properties = args.cell.properties || {};
+            args.cell.properties.cssClass = "scheduler-cell-today";
+        }
+    };
+
+    dp.onBeforeTimeHeaderRender = args => {
+        const today = DayPilot.Date.today();
+        const headerDate = dayPilotDateToJsDate(args.header.start);
+
+        if (args.header.level === 0) {
+            args.header.text = RUSSIAN_MONTHS[headerDate.getMonth()];
+        }
+
+        if (args.header.level === 1) {
+            args.header.text = `${RUSSIAN_WEEKDAYS_SHORT[headerDate.getDay()]} ${headerDate.getDate()}`;
+        }
+
+        if (args.header.level === 2) {
+            args.header.text = headerDate.getHours() < 12 ? "AM" : "PM";
+        }
+
+        if (args.header.level === 1 && isWeekendDate(headerDate)) {
+            args.header.cssClass = "scheduler-cell-weekend";
+        }
+
+        if (args.header.level === 1 && args.header.start.getDatePart().equals(today)) {
+            args.header.cssClass = "scheduler-cell-today";
+        }
     };
 
     dp.onTimeRangeSelected = args => {
@@ -1469,6 +1678,26 @@ function getRentalDays(start, end) {
     const durationMs = endDay - startDay;
     const durationDays = durationMs / (1000 * 60 * 60 * 24);
     return Math.max(1, durationDays);
+}
+
+function formatDateKey(date) {
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0")
+    ].join("-");
+}
+
+function getReturnDateKey(end) {
+    const endDate = new Date(String(end));
+
+    if (Number.isNaN(endDate.getTime())) {
+        return String(end).slice(0, 10);
+    }
+
+    // The scheduler stores `end` as the exclusive right boundary of the booking.
+    const effectiveReturn = new Date(endDate.getTime() - 60 * 1000);
+    return formatDateKey(effectiveReturn);
 }
 
 function getCarPricing(carId) {
@@ -1770,6 +1999,18 @@ updateHeroClock();
 setInterval(updateHeroClock, 1000);
 loadBatumiWeather();
 setInterval(loadBatumiWeather, 15 * 60 * 1000);
+
+if (schedulerPrev5Button) {
+    schedulerPrev5Button.addEventListener("click", () => shiftSchedulerDays(-5));
+}
+
+if (schedulerTodayButton) {
+    schedulerTodayButton.addEventListener("click", goToTodayInScheduler);
+}
+
+if (schedulerNext5Button) {
+    schedulerNext5Button.addEventListener("click", () => shiftSchedulerDays(5));
+}
 
 const savedWhiteboard = restoreWhiteboard();
 const templateVersion = getWhiteboardTemplateVersion();

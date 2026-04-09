@@ -1,0 +1,35 @@
+<header class="app-header-shell">
+    <div class="app-header">
+        <div class="app-header-actions">
+            {% if is_admin %}
+            <details class="app-header-menu">
+                <summary>Админская панель</summary>
+                <div class="app-header-menu-items">
+                    <a href="/">Календарь</a>
+                    <a href="/analytics">Аналитика</a>
+                    <a href="/insurance">Контроль авто</a>
+                    <a href="/logs">Журнал действий</a>
+                </div>
+            </details>
+            {% endif %}
+            {% if current_user %}
+            <form class="app-header-inline-form" action="/logout" method="post">
+                <button class="app-header-ghost-button" type="submit">Выйти</button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="app-header-clock" aria-live="polite">
+            <div class="app-header-day" id="app-header-day">...</div>
+            <div class="app-header-date" id="app-header-date">--</div>
+            <div class="app-header-time" id="app-header-time">--:--:--</div>
+        </div>
+        <aside class="app-header-weather" aria-label="Погода в Батуми">
+            <div class="app-header-weather-top">
+                <div class="app-header-weather-city">Batumi</div>
+                <div class="app-header-weather-icon" id="app-header-weather-icon">⛅</div>
+            </div>
+            <div class="app-header-weather-temp" id="app-header-weather-temp">--°C</div>
+            <div class="app-header-weather-status" id="app-header-weather-status">Загрузка погоды...</div>
+        </aside>
+    </div>
+</header>
