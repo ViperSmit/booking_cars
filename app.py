@@ -1,18 +1,20 @@
 import os
 import shutil
+from datetime import date, datetime, timedelta
 from functools import wraps
 from pathlib import Path
 
 from flask import Flask, abort, g, jsonify, redirect, render_template, request, send_file, session, url_for
-from datetime import date, timedelta
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from database import (
     add_audit_log,
     authenticate_user,
+    create_todo_task,
     create_car_record,
     delete_car_record,
+    delete_todo_task,
     get_analytics_reference_data,
     get_car_analytics,
     get_car,
@@ -22,6 +24,8 @@ from database import (
     init_db,
     list_audit_logs,
     list_cars,
+    list_todo_tasks,
+    update_todo_task,
     update_car_record,
 )
 
@@ -62,6 +66,7 @@ CAR_DOCUMENT_DOWNLOAD_NAMES = {
     "insurance_file": "insurance_policy",
     "inspection_file": "inspection_report",
 }
+TODO_STATUSES = {"remind", "dont_forget", "other"}
 
 
 def get_request_ip():
@@ -77,7 +82,9 @@ def current_username():
 
 
 def wants_json_response():
-    return request.path.startswith(("/cars", "/car/", "/add", "/update/", "/delete/", "/bookings", "/api/analytics"))
+    return request.path.startswith(
+        ("/cars", "/car/", "/add", "/update/", "/delete/", "/bookings", "/api/analytics", "/api/snapshot", "/api/todo")
+    )
 
 
 def login_required(view):
@@ -245,6 +252,153 @@ def validate_car_payload(data):
         **integer_fields,
         **prices,
     }, None
+
+
+def format_date_key(value):
+    return value.strftime("%Y-%m-%d")
+
+
+def parse_booking_datetime(value):
+    try:
+        return datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def get_return_date_key(value):
+    parsed = parse_booking_datetime(value)
+    if parsed is None:
+        return str(value)[:10]
+    return format_date_key(parsed - timedelta(minutes=1))
+
+
+def build_snapshot_payload():
+    cars = list_cars()
+    conn = get_conn()
+    rows = conn.execute(
+        """
+        SELECT id, car_id, client, booking_time, start, end, status
+        FROM bookings
+        """
+    ).fetchall()
+    conn.close()
+
+    bookings = [dict(row) for row in rows]
+    cars_by_id = {str(car["id"]): car["name"] for car in cars}
+    now = datetime.now()
+    today = now.date()
+    tomorrow = today + timedelta(days=1)
+    today_key = today.isoformat()
+    tomorrow_key = tomorrow.isoformat()
+
+    active_today = 0
+    for booking in bookings:
+        if (booking.get("status") or "reserved") == "repair":
+            continue
+        start = parse_booking_datetime(booking.get("start"))
+        end = parse_booking_datetime(booking.get("end"))
+        if start and end and start <= now < end:
+            active_today += 1
+
+    def event_time_from_datetime(value):
+        parsed = parse_booking_datetime(value)
+        if not parsed:
+            return ""
+        return parsed.strftime("%H:%M")
+
+    def booking_sort_key(item, event_type):
+        if event_type == "checkout":
+            return item.get("booking_time") or event_time_from_datetime(item.get("start")) or "23:59"
+        return event_time_from_datetime(item.get("end")) or "23:59"
+
+    def collect_day_events(day_key, event_type):
+        items = []
+        for booking in bookings:
+            if (booking.get("status") or "reserved") == "repair":
+                continue
+
+            if event_type == "checkout":
+                matches_day = str(booking.get("start"))[:10] == day_key
+            else:
+                matches_day = get_return_date_key(booking.get("end")) == day_key
+
+            if matches_day:
+                items.append(booking)
+
+        return sorted(items, key=lambda item: booking_sort_key(item, event_type))
+
+    today_checkouts = collect_day_events(today_key, "checkout")
+    today_returns = collect_day_events(today_key, "return")
+    tomorrow_checkouts = collect_day_events(tomorrow_key, "checkout")
+    tomorrow_returns = collect_day_events(tomorrow_key, "return")
+
+    def serialize_bookings(items, event_type):
+        return [
+            {
+                "id": item["id"],
+                "client": item.get("client") or "Без имени",
+                "time": booking_sort_key(item, event_type),
+                "booking_time": item.get("booking_time") or "",
+                "car_id": item.get("car_id"),
+                "car_name": cars_by_id.get(str(item.get("car_id")), "Авто не найдено"),
+                "status": item.get("status") or "reserved",
+                "start": item.get("start"),
+                "end": item.get("end"),
+            }
+            for item in items
+        ]
+
+    has_expired = any(
+        car["insurance_status_code"] == "expired"
+        or car["inspection_status_code"] == "expired"
+        or car["service_status_code"] == "expired"
+        for car in cars
+    )
+    has_warning = any(
+        car["insurance_status_code"] == "warning"
+        or car["inspection_status_code"] == "warning"
+        or car["service_status_code"] == "warning"
+        for car in cars
+    )
+    insurance_state = "ok"
+    insurance_note = "Страховки, техосмотр и ТО под контролем"
+    if has_expired:
+        insurance_state = "alert"
+        insurance_note = "Есть просроченные документы или срочное ТО"
+    elif has_warning:
+        insurance_state = "warning"
+        insurance_note = "Есть авто с истекающими документами или приближающимся ТО"
+
+    return {
+        "date": today_key,
+        "cars_count": len(cars),
+        "bookings_count": len(bookings),
+        "active_today_count": active_today,
+        "checkouts_today_count": len(today_checkouts),
+        "returns_today_count": len(today_returns),
+        "insurance_state": insurance_state,
+        "insurance_note": insurance_note,
+        "checkouts_today": serialize_bookings(today_checkouts, "checkout"),
+        "returns_today": serialize_bookings(today_returns, "return"),
+        "checkouts_tomorrow_count": len(tomorrow_checkouts),
+        "returns_tomorrow_count": len(tomorrow_returns),
+        "checkouts_tomorrow": serialize_bookings(tomorrow_checkouts, "checkout"),
+        "returns_tomorrow": serialize_bookings(tomorrow_returns, "return"),
+        "today": {
+            "date": today_key,
+            "checkouts_count": len(today_checkouts),
+            "returns_count": len(today_returns),
+            "checkouts": serialize_bookings(today_checkouts, "checkout"),
+            "returns": serialize_bookings(today_returns, "return"),
+        },
+        "tomorrow": {
+            "date": tomorrow_key,
+            "checkouts_count": len(tomorrow_checkouts),
+            "returns_count": len(tomorrow_returns),
+            "checkouts": serialize_bookings(tomorrow_checkouts, "checkout"),
+            "returns": serialize_bookings(tomorrow_returns, "return"),
+        },
+    }
 
 
 def get_car_request_payload():
@@ -486,6 +640,61 @@ def analytics_car_api(car_id):
         "end_date": filters["display_end"],
     }
     return jsonify(payload)
+
+
+@app.route("/api/snapshot")
+@login_required
+def snapshot_api():
+    return jsonify(build_snapshot_payload())
+
+
+@app.route("/api/todo", methods=["GET", "POST"])
+@login_required
+def todo_api():
+    if request.method == "GET":
+        return jsonify({"items": list_todo_tasks()})
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_json"}), 400
+
+    text = (payload.get("text") or "").strip()
+    status = (payload.get("status") or "").strip()
+    if not text:
+        return jsonify({"error": "missing_text"}), 400
+    if status not in TODO_STATUSES:
+        return jsonify({"error": "invalid_status"}), 400
+
+    task = create_todo_task(text, status, current_username())
+    add_audit_log(get_request_ip(), current_username(), "create", "todo_task", task["id"], task)
+    return jsonify({"status": "created", "item": task}), 201
+
+
+@app.route("/api/todo/<int:task_id>", methods=["PATCH", "DELETE"])
+@login_required
+def todo_item_api(task_id):
+    if request.method == "DELETE":
+        task = delete_todo_task(task_id)
+        if not task:
+            return jsonify({"error": "todo_not_found"}), 404
+
+        add_audit_log(get_request_ip(), current_username(), "delete", "todo_task", task["id"], task)
+        return jsonify({"status": "deleted", "item": task})
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "invalid_json"}), 400
+
+    status = (payload.get("status") or "").strip()
+    if status not in TODO_STATUSES:
+        return jsonify({"error": "invalid_status"}), 400
+
+    task = update_todo_task(task_id, status)
+    if not task:
+        return jsonify({"error": "todo_not_found"}), 404
+
+    add_audit_log(get_request_ip(), current_username(), "update", "todo_task", task["id"], task)
+    return jsonify({"status": "updated", "item": task})
 
 
 @app.route("/logs")

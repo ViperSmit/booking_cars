@@ -104,6 +104,17 @@ def ensure_audit_log_schema(cursor):
         cursor.execute("ALTER TABLE audit_logs ADD COLUMN username TEXT")
 
 
+def ensure_todo_schema(cursor):
+    columns = {row[1] for row in cursor.execute("PRAGMA table_info(todo_tasks)").fetchall()}
+    additions = {
+        "created_by": "TEXT",
+        "created_at": "TEXT",
+    }
+    for column, column_type in additions.items():
+        if column not in columns:
+            cursor.execute(f"ALTER TABLE todo_tasks ADD COLUMN {column} {column_type}")
+
+
 def compute_document_status(valid_until, active_label, warning_label, expired_label):
     if not valid_until:
         return {
@@ -919,8 +930,27 @@ def init_db():
 
     c.execute(
         """
+        CREATE TABLE IF NOT EXISTS todo_tasks(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            text TEXT NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('remind', 'dont_forget', 'other')),
+            created_by TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    ensure_todo_schema(c)
+
+    c.execute(
+        """
         CREATE INDEX IF NOT EXISTS idx_bookings_car_dates
         ON bookings(car_id, start, end)
+        """
+    )
+    c.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_todo_tasks_status_id
+        ON todo_tasks(status, id)
         """
     )
     ensure_analytics_tables(c)
@@ -1001,6 +1031,115 @@ def list_audit_logs(limit=200):
             }
         )
     return logs
+
+
+def list_todo_tasks():
+    conn = get_conn()
+    rows = conn.execute(
+        """
+        SELECT id, text, status, created_by, created_at
+        FROM todo_tasks
+        ORDER BY id DESC
+        """
+    ).fetchall()
+    conn.close()
+    return [
+        {
+            "id": row["id"],
+            "text": row["text"],
+            "status": row["status"],
+            "created_by": row["created_by"] or "",
+            "created_at": row["created_at"] or "",
+        }
+        for row in rows
+    ]
+
+
+def create_todo_task(text, status, created_by):
+    conn = get_conn()
+    cursor = conn.execute(
+        """
+        INSERT INTO todo_tasks(text, status, created_by, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (text, status, created_by, datetime.utcnow().isoformat(timespec="seconds")),
+    )
+    task_id = cursor.lastrowid
+    conn.commit()
+    row = conn.execute(
+        """
+        SELECT id, text, status, created_by, created_at
+        FROM todo_tasks
+        WHERE id = ?
+        """,
+        (task_id,),
+    ).fetchone()
+    conn.close()
+    return {
+        "id": row["id"],
+        "text": row["text"],
+        "status": row["status"],
+        "created_by": row["created_by"] or "",
+        "created_at": row["created_at"] or "",
+    }
+
+
+def update_todo_task(task_id, status):
+    conn = get_conn()
+    cursor = conn.execute(
+        """
+        UPDATE todo_tasks
+        SET status = ?
+        WHERE id = ?
+        """,
+        (status, task_id),
+    )
+    conn.commit()
+    if cursor.rowcount == 0:
+        conn.close()
+        return None
+    row = conn.execute(
+        """
+        SELECT id, text, status, created_by, created_at
+        FROM todo_tasks
+        WHERE id = ?
+        """,
+        (task_id,),
+    ).fetchone()
+    conn.close()
+    return {
+        "id": row["id"],
+        "text": row["text"],
+        "status": row["status"],
+        "created_by": row["created_by"] or "",
+        "created_at": row["created_at"] or "",
+    }
+
+
+def delete_todo_task(task_id):
+    conn = get_conn()
+    row = conn.execute(
+        """
+        SELECT id, text, status, created_by, created_at
+        FROM todo_tasks
+        WHERE id = ?
+        """,
+        (task_id,),
+    ).fetchone()
+    if not row:
+        conn.close()
+        return None
+
+    conn.execute("DELETE FROM todo_tasks WHERE id = ?", (task_id,))
+    conn.commit()
+    conn.close()
+    return {
+        "id": row["id"],
+        "text": row["text"],
+        "status": row["status"],
+        "created_by": row["created_by"] or "",
+        "created_at": row["created_at"] or "",
+    }
 
 
 def get_user_by_username(username):

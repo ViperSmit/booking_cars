@@ -432,12 +432,320 @@ details.admin-menu summary::-webkit-details-marker {
 .bottom-bar {
     margin-top: 16px;
     border-radius: 24px;
-    padding: 14px 16px;
+    padding: 18px;
 }
 
-.bottom-text {
+.todo-board {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.todo-column {
+    min-height: 220px;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, #f9fbfe 0%, #f2f7fc 100%);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.todo-column-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.todo-column-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--primary-strong);
+}
+
+.todo-column-count {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #d9e8f7;
+    color: var(--primary-strong);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.todo-column-body {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-radius: 14px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.66);
+    border: 1px dashed #cfdceb;
+    transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    cursor: pointer;
+}
+
+.todo-column-body:hover {
+    background: rgba(247, 251, 255, 0.96);
+    border-color: #a9c4e4;
+}
+
+.todo-column-body.drag-over {
+    background: #eef6ff;
+    border-color: #75a6db;
+    box-shadow: inset 0 0 0 1px #9ec2e8;
+}
+
+.todo-column-hint {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.todo-task {
+    border-radius: 14px;
+    padding: 12px 40px 12px 12px;
+    background: #ffffff;
+    border: 1px solid #d6e2ef;
+    box-shadow: 0 10px 24px rgba(31, 75, 153, 0.08);
+    cursor: grab;
+    position: relative;
+    overflow: hidden;
+}
+
+.todo-task::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 6px;
+    height: 100%;
+    background: var(--todo-accent, #2857a4);
+}
+
+.todo-task[data-color="sky"] {
+    --todo-accent: #2857a4;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+}
+
+.todo-task[data-color="mint"] {
+    --todo-accent: #1f9d61;
+    background: linear-gradient(180deg, #ffffff 0%, #f2fcf7 100%);
+}
+
+.todo-task[data-color="amber"] {
+    --todo-accent: #d89a00;
+    background: linear-gradient(180deg, #ffffff 0%, #fff9ee 100%);
+}
+
+.todo-task[data-color="rose"] {
+    --todo-accent: #cf3f3f;
+    background: linear-gradient(180deg, #ffffff 0%, #fff4f4 100%);
+}
+
+.todo-task[data-color="violet"] {
+    --todo-accent: #6d5bd0;
+    background: linear-gradient(180deg, #ffffff 0%, #f7f4ff 100%);
+}
+
+.todo-task[data-color="graphite"] {
+    --todo-accent: #475569;
+    background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+}
+
+.todo-task:active {
+    cursor: grabbing;
+}
+
+.todo-task.dragging {
+    opacity: 0.55;
+}
+
+.todo-task-delete {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    color: #7b8aa1;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(31, 75, 153, 0.10);
+}
+
+.todo-task-delete:hover {
+    color: #b91c1c;
+    background: #ffffff;
+}
+
+.todo-task-text {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.todo-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(10px);
+}
+
+.todo-modal.is-open {
+    display: flex;
+}
+
+.todo-modal-card {
+    width: min(560px, 100%);
+    border-radius: 28px;
+    border: 1px solid rgba(215, 225, 239, 0.9);
+    background:
+        radial-gradient(circle at top right, rgba(40, 87, 164, 0.12), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 249, 255, 0.98) 100%);
+    box-shadow: 0 24px 70px rgba(20, 39, 76, 0.24);
+    overflow: hidden;
+}
+
+.todo-modal-header {
+    padding: 22px 24px 12px;
+}
+
+.todo-modal-eyebrow {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.todo-modal-title {
+    margin-top: 6px;
+    font-size: 28px;
+    line-height: 1.05;
+    font-weight: 900;
+    color: var(--primary-strong);
+}
+
+.todo-modal-subtitle {
+    margin-top: 8px;
     color: var(--muted);
     font-size: 14px;
+    line-height: 1.5;
+}
+
+.todo-modal-body {
+    display: grid;
+    gap: 18px;
+    padding: 0 24px 24px;
+}
+
+.todo-modal-field {
+    display: grid;
+    gap: 10px;
+}
+
+.todo-modal-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--primary-strong);
+}
+
+.todo-modal-textarea {
+    min-height: 132px;
+    resize: vertical;
+    border-radius: 20px;
+    border: 1px solid #cddcf0;
+    padding: 16px 18px;
+    font: inherit;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.todo-modal-textarea:focus {
+    outline: none;
+    border-color: #7fa8dd;
+    box-shadow: 0 0 0 4px rgba(40, 87, 164, 0.12);
+}
+
+.todo-color-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.todo-color-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 18px;
+    border: 1px solid #d1deef;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.84);
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.todo-color-option:hover {
+    transform: translateY(-1px);
+    border-color: #8fb0da;
+    box-shadow: 0 10px 24px rgba(31, 75, 153, 0.10);
+}
+
+.todo-color-option.active {
+    border-color: var(--todo-option-color, #2857a4);
+    box-shadow: 0 0 0 3px rgba(40, 87, 164, 0.14);
+}
+
+.todo-color-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    background: var(--todo-option-color, #2857a4);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.todo-color-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.todo-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.todo-modal-status {
+    min-height: 20px;
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 700;
 }
 
 #whiteboard-shell {
@@ -708,6 +1016,14 @@ button:hover {
         grid-template-columns: 1fr;
     }
 
+    .todo-board {
+        grid-template-columns: 1fr;
+    }
+
+    .todo-color-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
     .hero-clock {
         justify-items: center;
         min-height: 0;
@@ -843,8 +1159,66 @@ button:hover {
     </section>
 
     <div class="bottom-bar">
-        <div class="bottom-text">
-            Статус страховок, техосмотра и технического обслуживания доступен в административном меню с полными данными по каждому автомобилю.
+        <div class="todo-board" id="todo-board">
+            <section class="todo-column" data-status="remind">
+                <div class="todo-column-header">
+                    <div class="todo-column-title">Напоминать</div>
+                    <div class="todo-column-count" data-todo-count="remind">0</div>
+                </div>
+                <div class="todo-column-body" data-todo-column="remind">
+                    <div class="todo-column-hint">Кликните по колонке, чтобы добавить задачу.</div>
+                </div>
+            </section>
+            <section class="todo-column" data-status="dont_forget">
+                <div class="todo-column-header">
+                    <div class="todo-column-title">Не забыть</div>
+                    <div class="todo-column-count" data-todo-count="dont_forget">0</div>
+                </div>
+                <div class="todo-column-body" data-todo-column="dont_forget">
+                    <div class="todo-column-hint">Перетаскивайте задачи между колонками.</div>
+                </div>
+            </section>
+            <section class="todo-column" data-status="other">
+                <div class="todo-column-header">
+                    <div class="todo-column-title">Прочее</div>
+                    <div class="todo-column-count" data-todo-count="other">0</div>
+                </div>
+                <div class="todo-column-body" data-todo-column="other">
+                    <div class="todo-column-hint">Карточки сохраняются локально в браузере.</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="todo-modal" id="todo-modal" aria-hidden="true">
+        <div class="todo-modal-card">
+            <div class="todo-modal-header">
+                <div class="todo-modal-eyebrow">Todo</div>
+                <div class="todo-modal-title">Новая задача</div>
+                <div class="todo-modal-subtitle" id="todo-modal-subtitle">Заполните текст и выберите цвет карточки.</div>
+            </div>
+            <div class="todo-modal-body">
+                <div class="todo-modal-field">
+                    <label class="todo-modal-label" for="todo-modal-text">Текст задачи</label>
+                    <textarea class="todo-modal-textarea" id="todo-modal-text" placeholder="Например: подготовить машину к выдаче, проверить документы, позвонить клиенту"></textarea>
+                </div>
+                <div class="todo-modal-field">
+                    <div class="todo-modal-label">Цвет карточки</div>
+                    <div class="todo-color-grid" id="todo-color-grid">
+                        <button class="todo-color-option active" data-todo-color="sky" style="--todo-option-color:#2857a4" type="button"><span class="todo-color-swatch"></span><span class="todo-color-name">Синий</span></button>
+                        <button class="todo-color-option" data-todo-color="mint" style="--todo-option-color:#1f9d61" type="button"><span class="todo-color-swatch"></span><span class="todo-color-name">Мятный</span></button>
+                        <button class="todo-color-option" data-todo-color="amber" style="--todo-option-color:#d89a00" type="button"><span class="todo-color-swatch"></span><span class="todo-color-name">Янтарный</span></button>
+                        <button class="todo-color-option" data-todo-color="rose" style="--todo-option-color:#cf3f3f" type="button"><span class="todo-color-swatch"></span><span class="todo-color-name">Красный</span></button>
+                        <button class="todo-color-option" data-todo-color="violet" style="--todo-option-color:#6d5bd0" type="button"><span class="todo-color-swatch"></span><span class="todo-color-name">Фиолетовый</span></button>
+                        <button class="todo-color-option" data-todo-color="graphite" style="--todo-option-color:#475569" type="button"><span class="todo-color-swatch"></span><span class="todo-color-name">Графит</span></button>
+                    </div>
+                </div>
+                <div class="todo-modal-status" id="todo-modal-status"></div>
+                <div class="todo-modal-actions">
+                    <button class="button-secondary" id="todo-modal-cancel" type="button">Отмена</button>
+                    <button id="todo-modal-submit" type="button">Создать</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1099,10 +1473,20 @@ const textSizeValue = document.getElementById("text-size-value");
 const colorButtons = Array.from(document.querySelectorAll("[data-color]"));
 const drawModeButton = document.getElementById("draw-mode-button");
 const textModeButton = document.getElementById("text-mode-button");
+const todoColumns = Array.from(document.querySelectorAll("[data-todo-column]"));
+const todoCounters = Array.from(document.querySelectorAll("[data-todo-count]"));
+const todoModal = document.getElementById("todo-modal");
+const todoModalText = document.getElementById("todo-modal-text");
+const todoModalStatus = document.getElementById("todo-modal-status");
+const todoModalSubtitle = document.getElementById("todo-modal-subtitle");
+const todoModalCancel = document.getElementById("todo-modal-cancel");
+const todoModalSubmit = document.getElementById("todo-modal-submit");
+const todoColorOptions = Array.from(document.querySelectorAll("[data-todo-color]"));
 
 const WHITEBOARD_STORAGE_KEY = "booking_cars_whiteboard_v2";
 const WHITEBOARD_TEMPLATE_VERSION_KEY = "booking_cars_whiteboard_template_version";
 const WHITEBOARD_TEMPLATE_VERSION = "photo_3";
+const TODO_COLORS_STORAGE_KEY = "booking_cars_todo_colors_v1";
 const BATUMI_WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=41.6168&longitude=41.6367&current=temperature_2m,weather_code&timezone=auto";
 const RUSSIAN_MONTHS = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
 const RUSSIAN_WEEKDAYS_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
@@ -1112,6 +1496,92 @@ let currentTextSize = Number(textSizeInput.value);
 let whiteboardMode = "draw";
 let isDrawing = false;
 let whiteboardSnapshot = null;
+let todoTasks = [];
+let todoModalState = {status: null, color: "sky"};
+let activeTodoDragId = null;
+
+function readTodoColorMap() {
+    try {
+        const raw = localStorage.getItem(TODO_COLORS_STORAGE_KEY);
+        if (!raw) {
+            return {};
+        }
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (error) {
+        console.error("todo_color_restore_failed", error);
+        return {};
+    }
+}
+
+function writeTodoColorMap(colorMap) {
+    try {
+        localStorage.setItem(TODO_COLORS_STORAGE_KEY, JSON.stringify(colorMap));
+    } catch (error) {
+        console.error("todo_color_save_failed", error);
+    }
+}
+
+function getTodoColor(taskId) {
+    const colorMap = readTodoColorMap();
+    return colorMap[String(taskId)] || "sky";
+}
+
+function setTodoColor(taskId, color) {
+    const colorMap = readTodoColorMap();
+    colorMap[String(taskId)] = color;
+    writeTodoColorMap(colorMap);
+}
+
+function getTodoColorLabel(color) {
+    if (color === "mint") {
+        return "Мятный";
+    }
+    if (color === "amber") {
+        return "Янтарный";
+    }
+    if (color === "rose") {
+        return "Красный";
+    }
+    if (color === "violet") {
+        return "Фиолетовый";
+    }
+    if (color === "graphite") {
+        return "Графит";
+    }
+    return "Синий";
+}
+
+function setActiveTodoColor(color) {
+    todoModalState.color = color;
+    todoColorOptions.forEach(option => {
+        option.classList.toggle("active", option.dataset.todoColor === color);
+    });
+}
+
+function openTodoModal(status) {
+    todoModalState.status = status;
+    todoModalStatus.textContent = "";
+    todoModalSubtitle.textContent = `Новая задача для колонки «${getTodoStatusLabel(status)}».`;
+    todoModalText.value = "";
+    setActiveTodoColor("sky");
+    todoModal.classList.add("is-open");
+    todoModal.setAttribute("aria-hidden", "false");
+    window.setTimeout(() => todoModalText.focus(), 0);
+}
+
+function closeTodoModal() {
+    todoModal.classList.remove("is-open");
+    todoModal.setAttribute("aria-hidden", "true");
+    todoModalStatus.textContent = "";
+    todoModalState = {status: null, color: "sky"};
+}
+
+function clearTodoDragState() {
+    activeTodoDragId = null;
+    todoColumns.forEach(column => column.classList.remove("drag-over"));
+    document.querySelectorAll(".todo-task.dragging").forEach(card => card.classList.remove("dragging"));
+}
 
 function resetForm() {
     client.value = "";
@@ -1184,6 +1654,174 @@ function markWhiteboardTemplateVersion() {
     } catch (error) {
         console.error("whiteboard_version_save_failed", error);
     }
+}
+
+function getTodoStatusLabel(status) {
+    if (status === "remind") {
+        return "Напоминать";
+    }
+    if (status === "dont_forget") {
+        return "Не забыть";
+    }
+    return "Прочее";
+}
+
+function formatTodoCreatedAt(value) {
+    if (!value) {
+        return "";
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return "";
+    }
+
+    return new Intl.DateTimeFormat("ru-RU", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    }).format(parsed);
+}
+
+async function loadTodoTasks() {
+    const response = await fetchJson("/api/todo");
+    todoTasks = Array.isArray(response.items) ? response.items : [];
+    renderTodoBoard();
+}
+
+function renderTodoBoard() {
+    todoColumns.forEach(column => {
+        const status = column.dataset.todoColumn;
+        const items = todoTasks.filter(task => task.status === status);
+        const countNode = todoCounters.find(counter => counter.dataset.todoCount === status);
+
+        column.innerHTML = "";
+
+        if (!items.length) {
+            const hint = document.createElement("div");
+            hint.className = "todo-column-hint";
+            hint.textContent = "Кликните сюда, чтобы добавить задачу.";
+            column.appendChild(hint);
+        }
+
+        items.forEach(task => {
+            const card = document.createElement("article");
+            card.className = "todo-task";
+            card.draggable = true;
+            card.dataset.todoId = task.id;
+            card.dataset.color = getTodoColor(task.id);
+            const deleteTodoButton = document.createElement("button");
+            deleteTodoButton.className = "todo-task-delete";
+            deleteTodoButton.type = "button";
+            deleteTodoButton.textContent = "×";
+            deleteTodoButton.setAttribute("aria-label", "Удалить задачу");
+
+            deleteTodoButton.draggable = false;
+            deleteTodoButton.addEventListener("pointerdown", event => {
+                event.stopPropagation();
+            });
+
+            const text = document.createElement("div");
+            text.className = "todo-task-text";
+            text.textContent = task.text;
+
+            const meta = document.createElement("div");
+            meta.className = "todo-task-meta";
+            const createdAt = formatTodoCreatedAt(task.created_at);
+            meta.textContent = [getTodoStatusLabel(task.status), createdAt].filter(Boolean).join(" • ");
+
+            const colorLabel = document.createElement("div");
+            colorLabel.className = "todo-task-color-label";
+
+            const colorDot = document.createElement("span");
+            colorDot.className = "todo-task-color-dot";
+
+            const colorText = document.createElement("span");
+            colorText.textContent = getTodoColorLabel(card.dataset.color);
+
+            colorLabel.append(colorDot, colorText);
+            card.append(deleteTodoButton, text);
+            column.appendChild(card);
+        });
+
+        if (countNode) {
+            countNode.textContent = String(items.length);
+        }
+    });
+}
+
+async function addTodoTask(status) {
+    const text = window.prompt("Новая задача:");
+    if (!text || !text.trim()) {
+        return;
+    }
+
+    const response = await fetchJson("/api/todo", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            text: text.trim(),
+            status
+        })
+    });
+    todoTasks.unshift(response.item);
+    renderTodoBoard();
+}
+
+async function submitTodoTaskFromModal() {
+    if (!todoModalState.status) {
+        return;
+    }
+
+    const text = todoModalText.value.trim();
+    if (!text) {
+        todoModalStatus.textContent = "Введите текст задачи.";
+        return;
+    }
+
+    const response = await fetchJson("/api/todo", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            text,
+            status: todoModalState.status
+        })
+    });
+
+    setTodoColor(response.item.id, todoModalState.color);
+    todoTasks.unshift(response.item);
+    renderTodoBoard();
+    closeTodoModal();
+}
+
+async function moveTodoTask(taskId, status) {
+    const normalizedTaskId = Number(taskId);
+    const task = todoTasks.find(item => item.id === normalizedTaskId);
+    if (!task || task.status === status) {
+        return;
+    }
+
+    const response = await fetchJson("/api/todo/" + normalizedTaskId, {
+        method: "PATCH",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({status})
+    });
+    task.status = response.item.status;
+    renderTodoBoard();
+}
+
+async function deleteTodoTask(taskId) {
+    const response = await fetchJson("/api/todo/" + taskId, {
+        method: "DELETE"
+    });
+
+    todoTasks = todoTasks.filter(item => item.id !== Number(taskId));
+    const colorMap = readTodoColorMap();
+    delete colorMap[String(taskId)];
+    writeTodoColorMap(colorMap);
+    renderTodoBoard();
+    return response;
 }
 
 function setBrushColor(color) {
@@ -1985,6 +2623,120 @@ whiteboard.addEventListener("pointerup", stopDrawing);
 whiteboard.addEventListener("pointerleave", stopDrawing);
 whiteboard.addEventListener("pointercancel", stopDrawing);
 
+todoColumns.forEach(column => {
+    column.addEventListener("click", async event => {
+        if (event.target.closest(".todo-task")) {
+            return;
+        }
+        openTodoModal(column.dataset.todoColumn);
+    });
+
+    column.addEventListener("dragover", event => {
+        event.preventDefault();
+        column.classList.add("drag-over");
+    });
+
+    column.addEventListener("dragleave", event => {
+        if (!column.contains(event.relatedTarget)) {
+            column.classList.remove("drag-over");
+        }
+    });
+
+    column.addEventListener("drop", async event => {
+        event.preventDefault();
+        column.classList.remove("drag-over");
+        const taskId = event.dataTransfer.getData("text/plain");
+        if (taskId) {
+            try {
+                await moveTodoTask(taskId, column.dataset.todoColumn);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+    });
+});
+
+todoColorOptions.forEach(option => {
+    option.addEventListener("click", () => {
+        setActiveTodoColor(option.dataset.todoColor);
+    });
+});
+
+todoModalCancel.addEventListener("click", closeTodoModal);
+
+todoModalSubmit.addEventListener("click", async () => {
+    try {
+        await submitTodoTaskFromModal();
+    } catch (error) {
+        todoModalStatus.textContent = error.message;
+    }
+});
+
+todoModal.addEventListener("click", event => {
+    if (event.target === todoModal) {
+        closeTodoModal();
+    }
+});
+
+document.addEventListener("keydown", async event => {
+    if (!todoModal.classList.contains("is-open")) {
+        return;
+    }
+
+    if (event.key === "Escape") {
+        closeTodoModal();
+        return;
+    }
+
+    if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        try {
+            await submitTodoTaskFromModal();
+        } catch (error) {
+            todoModalStatus.textContent = error.message;
+        }
+    }
+});
+
+document.addEventListener("dragstart", event => {
+    const task = event.target.closest(".todo-task");
+    if (!task) {
+        return;
+    }
+    task.classList.add("dragging");
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", task.dataset.todoId);
+});
+
+document.addEventListener("dragend", event => {
+    const task = event.target.closest(".todo-task");
+    if (task) {
+        task.classList.remove("dragging");
+    }
+    todoColumns.forEach(column => column.classList.remove("drag-over"));
+});
+
+document.addEventListener("click", async event => {
+    const deleteButton = event.target.closest(".todo-task-delete");
+    if (!deleteButton) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const task = deleteButton.closest(".todo-task");
+    if (!task) {
+        return;
+    }
+
+    try {
+        await deleteTodoTask(task.dataset.todoId);
+    } catch (error) {
+        showError(error.message);
+    }
+});
+
 window.addEventListener("resize", () => {
     clearTimeout(whiteboardSnapshot);
     whiteboardSnapshot = setTimeout(resizeWhiteboard, 120);
@@ -1995,6 +2747,7 @@ setBrushSize(currentBrushSize);
 setTextSize(currentTextSize);
 setWhiteboardMode(whiteboardMode);
 resizeWhiteboard();
+loadTodoTasks().catch(error => showError(error.message));
 updateHeroClock();
 setInterval(updateHeroClock, 1000);
 loadBatumiWeather();
